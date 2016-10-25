@@ -11,7 +11,7 @@ typedef struct
 
 typedef struct
 {
-    double theta, psi;
+    double theta, phi;
 } ANGLES;
 
 //FUNCTION PROTOTYPES
@@ -83,8 +83,8 @@ double GenRandDouble(double minDoub, double maxDoub)
 ANGLES CalcNextAngles()
 {
     ANGLES NewAngles;
-    NewAngles.theta = GenRandDouble(-pi/4, pi/4);
-    NewAngles.phi = GenRandDouble(-pi, pi);
+    NewAngles.theta = GenRandDouble(-M_PI/4, M_PI/4);
+    NewAngles.phi = GenRandDouble(-M_PI, M_PI);
 
     return NewAngles;
 }
