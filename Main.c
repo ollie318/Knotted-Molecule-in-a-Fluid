@@ -11,7 +11,7 @@ typedef struct
 
 typedef struct
 {
-    double theta, phi;
+    double theta, psi;
 } ANGLES;
 
 //FUNCTION PROTOTYPES
@@ -21,6 +21,9 @@ POSITION CalcNextBallPos(POSITION nMinusTwoPos, POSITION nMinusOnePos);
 double GenRandDouble(double minDoub, double maxDoub);                   //Note: not truly random, testing purposes only!
 
 ANGLES CalcNextAngles();
+
+double FENEForce(POSITION nMinusTwoPos, POSITION nMinusOnePos, POSITION Pos);
+
 
 //MAIN PROG
 
@@ -83,10 +86,54 @@ double GenRandDouble(double minDoub, double maxDoub)
 ANGLES CalcNextAngles()
 {
     ANGLES NewAngles;
-    NewAngles.theta = GenRandDouble(-M_PI/4, M_PI/4);
-    NewAngles.phi = GenRandDouble(-M_PI, M_PI);
+    NewAngles.theta = GenRandDouble(-pi/4, pi/4);
+    NewAngles.phi = GenRandDouble(-pi, pi);
 
     return NewAngles;
 }
+
+double FENEForce(POSITION nMinusTwoPos, POSITION nMinusOnePos, POSITION Pos)
+{
+
+    double FENEForcex1, FENEForcex2, FENEForcey1, FENEForcey2, FENEForcez1, FENEForcez2, Q1, Q2, Q_0, H;
+
+    H = ;
+    Q_0 = ;
+    FENEForcex1 = (H*(Pos.xPos-nMinusOnePos.xPos))/(1 - pow(Pos.xPos-nMinusOnePos.xPos, 2)/Q_0);
+    FENEForcex2 = (H*(nMinusOnePos.xPos-nMinusTwoPos.xPos))/(1 - pow(nMinusOnePos.xPos-nMinusTwoPos.xPos, 2)/pow(Q_0, 2);
+    FENEForcey1 = (H*(Pos.yPos-nMinusOnePos.yPos))/(1 - pow(Pos.yPos-nMinusOnePos.yPos, 2)/Q_0);
+    FENEForcey2 = (H*(nMinusOnePos.yPos-nMinusTwoPos.yPos))/(1 - pow(nMinusOnePos.yPos-nMinusTwoPos.yPos, 2)/pow(Q_0, 2);
+    FENEForcez1 = (H*(Pos.zPos-nMinusOnePos.zPos))/(1 - pow(Pos.zPos-nMinusOnePos.zPos, 2)/Q_0);
+    FENEForcez2 = (H*(nMinusOnePos.zPos-nMinusTwoPos.zPos))/(1 - pow(nMinusOnePos.zPos-nMinusTwoPos.zPos, 2)/pow(Q_0, 2);
+
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
