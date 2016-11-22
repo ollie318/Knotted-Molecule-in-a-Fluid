@@ -128,16 +128,16 @@ TWO_GAUSS BoxMullerTrans (double input_1, double input_2)
 double FENEForce(POSITION nMinusTwoPos, POSITION nMinusOnePos, POSITION nPos)
 {
 
-    double FENEForce_x1, FENEForce_x2, FENEForce_y1, FENEForce_y2, FENEForce_z1, FENEForce_z2, Q1, Q2, Q_0, H;
+    double FENE_x1, FENE_x2, FENE_y1, FENE_y2, FENE_z1, FENE_z2, Q1, Q2, Q_0, H;
 
     H = ;
     Q_0 = ;
-    FENEForce_x1 = (H* (nPos.xPos - nMinusOnePos.xPos)) / (1 - pow(nPos.xPos - nMinusOnePos.xPos, 2) / Q_0);
-    FENEForce_x2 = (H* (nMinusOnePos.xPos - nMinusTwoPos.xPos)) / (1 - pow(nMinusOnePos.xPos - nMinusTwoPos.xPos, 2) / pow(Q_0, 2);
-    FENEForce_y1 = (H* (nPos.yPos - nMinusOnePos.yPos)) / (1 - pow(nPos.yPos - nMinusOnePos.yPos, 2) / Q_0);
-    FENEForce_y2 = (H* (nMinusOnePos.yPos - nMinusTwoPos.yPos)) / (1 - pow(nMinusOnePos.yPos - nMinusTwoPos.yPos, 2) / pow(Q_0, 2);
-    FENEForce_z1 = (H* (nPos.zPos - nMinusOnePos.zPos)) / (1 - pow(nPos.zPos - nMinusOnePos.zPos, 2) / Q_0);
-    FENEForce_z2 = (H* (nMinusOnePos.zPos - nMinusTwoPos.zPos)) / (1 - pow(nMinusOnePos.zPos - nMinusTwoPos.zPos, 2) / pow(Q_0, 2);
+    FENE_x1 = (H* (nPos.xPos - nMinusOnePos.xPos)) / (1 - pow(nPos.xPos - nMinusOnePos.xPos, 2) / Q_0);
+    FENE_x2 = (H* (nMinusOnePos.xPos - nMinusTwoPos.xPos)) / (1 - pow(nMinusOnePos.xPos - nMinusTwoPos.xPos, 2) / pow(Q_0, 2);
+    FENEy1 = (H* (nPos.yPos - nMinusOnePos.yPos)) / (1 - pow(nPos.yPos - nMinusOnePos.yPos, 2) / Q_0);
+    FENE_y2 = (H* (nMinusOnePos.yPos - nMinusTwoPos.yPos)) / (1 - pow(nMinusOnePos.yPos - nMinusTwoPos.yPos, 2) / pow(Q_0, 2);
+    FENE_z1 = (H* (nPos.zPos - nMinusOnePos.zPos)) / (1 - pow(nPos.zPos - nMinusOnePos.zPos, 2) / Q_0);
+    FENE_z2 = (H* (nMinusOnePos.zPos - nMinusTwoPos.zPos)) / (1 - pow(nMinusOnePos.zPos - nMinusTwoPos.zPos, 2) / pow(Q_0, 2);
 
 }
 
@@ -150,3 +150,54 @@ double DragForce (double BeadRadi, double FluidViscos, double FlowVel)
 
     return StokeForce;
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
