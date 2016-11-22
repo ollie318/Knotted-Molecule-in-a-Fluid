@@ -31,7 +31,7 @@ typedef struct
 
 typedef struct 
 {
-    double pi, BeadRadi, FluidViscos, boltzmann, h;
+    double pi, BeadRadi, FluidViscos, boltzmann, h, T;
 } CONSTANTS;
 
 //FUNCTION PROTOTYPES
@@ -40,15 +40,15 @@ POSITION CalcNextBallPos(POSITION nMinusTwoPos, POSITION nMinusOnePos);
 
 double GenRandDouble(double minDoub, double maxDoub);                   //Note: not truly random, testing purposes only!
 
-ANGLES CalcNextAngles(CONSTANTS constants);
+ANGLES CalcNextAngles(CONSTANTS c);
 
-TWO_GAUSS BoxMullerTrans (double input_1, double input_2);
+TWO_GAUSS BoxMullerTrans (CONSTANTS c, double input_1, double input_2);
 
-FENE FENEForce(POSITION nMinusTwoPos, POSITION nMinusOnePos, POSITION Pos, CONSTANTS constants);
+FENE FENEForce(POSITION nMinusTwoPos, POSITION nMinusOnePos, POSITION Pos, CONSTANTS c);
 
-double DragForce (CONSTANTS constants, double FlowVel);
+double DragForce (CONSTANTS c, double FlowVel);
 
-BROWNIAN Brownian(CONSTANTS constants);
+BROWNIAN Brownian(CONSTANTS c);
 
 //MAIN PROG
 
@@ -102,7 +102,7 @@ POSITION CalcNextBallPos(POSITION nMinusTwoPos, POSITION nMinusOnePos)
     */
 
 
-    ANGLES nAngles = CalcNextAngles();
+    ANGLES nAngles = CalcNextAngles(CONSTANTS c);
 
     nPos.xPos = nMinusOnePos.xPos + sin(nAngles.theta) * cos(nAngles.phi);
     nPos.yPos = nMinusOnePos.yPos + sin(nAngles.theta) * sin(nAngles.phi);      //This line appears to have the error
@@ -121,28 +121,28 @@ double GenRandDouble(double minDoub, double maxDoub)
 }
 
 
-ANGLES CalcNextAngles(CONSTANTS constants)
+ANGLES CalcNextAngles(CONSTANTS c)
 {
     ANGLES NewAngles;
-    NewAngles.theta = GenRandDouble(-constants.pi/4, constants.pi/4);
-    NewAngles.phi = GenRandDouble(-constants.pi, constants.pi);
+    NewAngles.theta = GenRandDouble(-c.pi/4, c.pi/4);
+    NewAngles.phi = GenRandDouble(-c.pi, c.pi);
 
     return NewAngles;
 }
 
 
-TWO_GAUSS BoxMullerTrans (double input_1, double input_2)
+TWO_GAUSS BoxMullerTrans (CONSTANTS c, double input_1, double input_2)
 {
     TWO_GAUSS OutputGauss;
 
-    OutputGauss.Gauss_1 = sqrt(-2 * ln(input_1) ) * cos(2 * constants.pi * input_2);
-    OutputGauss.Gauss_2 = sqrt(-2 * ln(input_1) ) * sin(2 * constants.pi * input_2);
+    OutputGauss.Gauss_1 = sqrt(-2 * ln(input_1) ) * cos(2 * c.pi * input_2);
+    OutputGauss.Gauss_2 = sqrt(-2 * ln(input_1) ) * sin(2 * c.pi * input_2);
 
     return OutputGauss;
 }
 
 
-FENE FENEForce(POSITION nMinusTwoPos, POSITION nMinusOnePos, POSITION nPos, CONSTANTS constants)
+FENE FENEForce(POSITION nMinusTwoPos, POSITION nMinusOnePos, POSITION nPos, CONSTANTS c)
 {
     FENE FENEForces;
 
@@ -159,21 +159,21 @@ FENE FENEForce(POSITION nMinusTwoPos, POSITION nMinusOnePos, POSITION nPos, CONS
 }
 
 
-double DragForce (CONSTANTS constants, double FlowVel)
+double DragForce (CONSTANTS c, double FlowVel)
 {
     double StokeForce;
 
-    StokeForce = - 6 * constants.pi * constants.FluidViscos * FlowVel * constants.BeadRadi;
+    StokeForce = - 6 * c.pi * c.FluidViscos * FlowVel * c.BeadRadi;
 
     return StokeForce;
 }
 
-BROWNIAN Brownian(CONSTANTS constants){
+BROWNIAN Brownian(CONSTANTS c){
     BROWNIAN BrownianForces;
 
-    BrownianForces.BrownianForce_x = sqrt((constants.boltzmann*constants.T)/(constants.pi*constants.FluidViscos*constants.BeadRadi*constants.h))*  //randomnumber
-    BrownianForces.BrownianForce_y = sqrt((constants.boltzmann*constants.T)/(constants.pi*constants.FluidViscos*constants.BeadRadi*constants.h))*
-    BrownianForces.BrownianForce_z = sqrt((constants.boltzmann*constants.T)/(constants.pi*constants.FluidViscos*constants.BeadRadi*constants.h))*
+    BrownianForces.BrownianForce_x = sqrt((c.boltzmann*c.T)/(c.pi*c.FluidViscos*c.BeadRadi*c.h))*  //randomnumber from 1 to -1
+    BrownianForces.BrownianForce_y = sqrt((c.boltzmann*c.T)/(c.pi*c.FluidViscos*c.BeadRadi*c.h))*
+    BrownianForces.BrownianForce_z = sqrt((c.boltzmann*c.T)/(c.pi*c.FluidViscos*c.BeadRadi*c.h))*
 
     return BrownianForces;
 }
