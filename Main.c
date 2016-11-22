@@ -29,26 +29,39 @@ double FENEForce(POSITION nMinusTwoPos, POSITION nMinusOnePos, POSITION Pos);
 
 int main()
 {
-    int const N = 5;
+    int const N = 10;
 
     double const radius = 1.0;
 
     POSITION PositionArray[N];
+    
+    FILE *File_BeadPos;
 
-    PositionArray[0].xPos = 0;					//Initialising pos1 to 0,0,0
+    File_BeadPos = fopen("File_BeadPos.txt", "w");
+
+    PositionArray[0].xPos = 0;                  //Initialising pos1 to 0,0,0
     PositionArray[0].yPos = 0;
     PositionArray[0].zPos = 0;
 
+    fprintf(File_BeadPos, "%lf%c%lf%c%lf\n", PositionArray[0].xPos, 9, PositionArray[0].yPos, 9, PositionArray[0].zPos);
+    
     PositionArray[1].xPos = PositionArray[0].xPos + radius;
     PositionArray[1].yPos = PositionArray[0].yPos + radius;
     PositionArray[1].zPos = PositionArray[0].zPos + radius;
 
+    fprintf(File_BeadPos, "%lf%c%lf%c%lf\n", PositionArray[1].xPos, 9, PositionArray[1].yPos, 9, PositionArray[1].zPos);
+    
     int loopcount;
 
     for(loopcount = 2; loopcount <= N; loopcount++)
     {
         PositionArray[loopcount] = CalcNextBallPos(PositionArray[loopcount-2], PositionArray[loopcount-1]);
+        
+        fprintf(File_BeadPos, "%lf%c%lf%c%lf\n", PositionArray[loopcount].xPos, 9, PositionArray[loopcount].yPos, 9, PositionArray[loopcount].zPos);
     }
+    
+    fclose(File_BeadPos);
+    
     return 0;
 }
 
@@ -57,19 +70,18 @@ int main()
 POSITION CalcNextBallPos(POSITION nMinusTwoPos, POSITION nMinusOnePos)
 {
     POSITION nPos;
+    /*
     nPos.xPos = 2*nMinusOnePos.xPos - nMinusTwoPos.xPos;    //Minus contribution from angles, just use rad?
     nPos.yPos = 2*nMinusOnePos.yPos - nMinusTwoPos.yPos;
     nPos.zPos = 2*nMinusOnePos.zPos - nMinusTwoPos.zPos;
+    */
 
 
-    /*
     ANGLES nAngles = CalcNextAngles();
 
     nPos.xPos = nMinusOnePos.xPos + sin(nAngles.theta) * cos(nAngles.phi);
-    nPos.yPos = nMinusOnePos.yPos + sin(nAngles.theta) * sin(nAngles.phi);
-    nPos.zPos = nMinusOnePos.zPos + cos(theta);
-    */
-
+    nPos.yPos = nMinusOnePos.yPos + sin(nAngles.theta) * sin(nAngles.phi);      //This line appears to have the error
+    nPos.zPos = nMinusOnePos.zPos + cos(nAngles.theta);
 
     return nPos;
 }
@@ -92,48 +104,18 @@ ANGLES CalcNextAngles()
     return NewAngles;
 }
 
-double FENEForce(POSITION nMinusTwoPos, POSITION nMinusOnePos, POSITION Pos)
+double FENEForce(POSITION nMinusTwoPos, POSITION nMinusOnePos, POSITION nPos)
 {
 
-    double FENEForcex1, FENEForcex2, FENEForcey1, FENEForcey2, FENEForcez1, FENEForcez2, Q1, Q2, Q_0, H;
+    double FENEForce_x1, FENEForce_x2, FENEForce_y1, FENEForce_y2, FENEForce_z1, FENEForce_z2, Q1, Q2, Q_0, H;
 
     H = ;
     Q_0 = ;
-    FENEForcex1 = (H*(Pos.xPos-nMinusOnePos.xPos))/(1 - pow(Pos.xPos-nMinusOnePos.xPos, 2)/Q_0);
-    FENEForcex2 = (H*(nMinusOnePos.xPos-nMinusTwoPos.xPos))/(1 - pow(nMinusOnePos.xPos-nMinusTwoPos.xPos, 2)/pow(Q_0, 2);
-    FENEForcey1 = (H*(Pos.yPos-nMinusOnePos.yPos))/(1 - pow(Pos.yPos-nMinusOnePos.yPos, 2)/Q_0);
-    FENEForcey2 = (H*(nMinusOnePos.yPos-nMinusTwoPos.yPos))/(1 - pow(nMinusOnePos.yPos-nMinusTwoPos.yPos, 2)/pow(Q_0, 2);
-    FENEForcez1 = (H*(Pos.zPos-nMinusOnePos.zPos))/(1 - pow(Pos.zPos-nMinusOnePos.zPos, 2)/Q_0);
-    FENEForcez2 = (H*(nMinusOnePos.zPos-nMinusTwoPos.zPos))/(1 - pow(nMinusOnePos.zPos-nMinusTwoPos.zPos, 2)/pow(Q_0, 2);
+    FENEForce_x1 = (H* (nPos.xPos - nMinusOnePos.xPos)) / (1 - pow(nPos.xPos - nMinusOnePos.xPos, 2) / Q_0);
+    FENEForce_x2 = (H* (nMinusOnePos.xPos - nMinusTwoPos.xPos)) / (1 - pow(nMinusOnePos.xPos - nMinusTwoPos.xPos, 2) / pow(Q_0, 2);
+    FENEForce_y1 = (H* (nPos.yPos - nMinusOnePos.yPos)) / (1 - pow(nPos.yPos - nMinusOnePos.yPos, 2) / Q_0);
+    FENEForce_y2 = (H* (nMinusOnePos.yPos - nMinusTwoPos.yPos)) / (1 - pow(nMinusOnePos.yPos - nMinusTwoPos.yPos, 2) / pow(Q_0, 2);
+    FENEForce_z1 = (H* (nPos.zPos - nMinusOnePos.zPos)) / (1 - pow(nPos.zPos - nMinusOnePos.zPos, 2) / Q_0);
+    FENEForce_z2 = (H* (nMinusOnePos.zPos - nMinusTwoPos.zPos)) / (1 - pow(nMinusOnePos.zPos - nMinusTwoPos.zPos, 2) / pow(Q_0, 2);
 
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
