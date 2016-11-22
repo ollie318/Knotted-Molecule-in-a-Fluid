@@ -24,6 +24,7 @@ ANGLES CalcNextAngles();
 
 double FENEForce(POSITION nMinusTwoPos, POSITION nMinusOnePos, POSITION Pos);
 
+double DragForce (double BeadRadi, double FluidViscos, double FlowVel);
 
 //MAIN PROG
 
@@ -95,6 +96,7 @@ double GenRandDouble(double minDoub, double maxDoub)
     return randDoub;
 }
 
+
 ANGLES CalcNextAngles()
 {
     ANGLES NewAngles;
@@ -103,6 +105,7 @@ ANGLES CalcNextAngles()
 
     return NewAngles;
 }
+
 
 double FENEForce(POSITION nMinusTwoPos, POSITION nMinusOnePos, POSITION nPos)
 {
@@ -118,4 +121,14 @@ double FENEForce(POSITION nMinusTwoPos, POSITION nMinusOnePos, POSITION nPos)
     FENEForce_z1 = (H* (nPos.zPos - nMinusOnePos.zPos)) / (1 - pow(nPos.zPos - nMinusOnePos.zPos, 2) / Q_0);
     FENEForce_z2 = (H* (nMinusOnePos.zPos - nMinusTwoPos.zPos)) / (1 - pow(nMinusOnePos.zPos - nMinusTwoPos.zPos, 2) / pow(Q_0, 2);
 
+}
+
+
+double DragForce (double BeadRadi, double FluidViscos, double FlowVel)
+{
+    double StokeForce;
+
+    StokeForce = - 6 * M_PI * FluidViscos * FlowVel * BeadRadi;
+
+    return StokeForce;
 }
