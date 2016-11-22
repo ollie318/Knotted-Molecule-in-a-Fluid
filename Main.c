@@ -184,7 +184,7 @@ BROWNIAN Brownian(CONSTANTS c){
 
 double Diffusion(CONSTANTS c){
     double D;
-    D = (c.Boltzmann*c.T)/(6*c.pi*c.FluidViscos*c.BeadRadi);
+    D = (Boltzmann*c.T)/(6*c.pi*c.FluidViscos*c.BeadRadi);
     return D;
 }
 
