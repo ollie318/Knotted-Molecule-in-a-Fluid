@@ -11,7 +11,7 @@ typedef struct
 
 typedef struct
 {
-    double theta, psi;
+    double theta, phi;
 } ANGLES;
 
 typedef struct
@@ -29,21 +29,26 @@ typedef struct
     double BrownianForce_x, BrownianForce_y, BrownianForce_z;
 } BROWNIAN;
 
+typedef struct 
+{
+    double pi, BeadRadi, FluidViscos, boltzmann, h;
+} CONSTANTS;
+
 //FUNCTION PROTOTYPES
 
 POSITION CalcNextBallPos(POSITION nMinusTwoPos, POSITION nMinusOnePos);
 
 double GenRandDouble(double minDoub, double maxDoub);                   //Note: not truly random, testing purposes only!
 
-ANGLES CalcNextAngles();
+ANGLES CalcNextAngles(CONSTANTS constants);
 
 TWO_GAUSS BoxMullerTrans (double input_1, double input_2);
 
-double FENEForce(POSITION nMinusTwoPos, POSITION nMinusOnePos, POSITION Pos);
+FENE FENEForce(POSITION nMinusTwoPos, POSITION nMinusOnePos, POSITION Pos, CONSTANTS constants);
 
-double DragForce (double BeadRadi, double FluidViscos, double FlowVel);
+double DragForce (CONSTANTS constants, double FlowVel);
 
-double Brownian();
+BROWNIAN Brownian(CONSTANTS constants);
 
 //MAIN PROG
 
@@ -116,11 +121,11 @@ double GenRandDouble(double minDoub, double maxDoub)
 }
 
 
-ANGLES CalcNextAngles()
+ANGLES CalcNextAngles(CONSTANTS constants)
 {
     ANGLES NewAngles;
-    NewAngles.theta = GenRandDouble(-pi/4, pi/4);
-    NewAngles.phi = GenRandDouble(-pi, pi);
+    NewAngles.theta = GenRandDouble(-constants.pi/4, constants.pi/4);
+    NewAngles.phi = GenRandDouble(-constants.pi, constants.pi);
 
     return NewAngles;
 }
@@ -130,14 +135,14 @@ TWO_GAUSS BoxMullerTrans (double input_1, double input_2)
 {
     TWO_GAUSS OutputGauss;
 
-    OutputGauss.Gauss_1 = sqrt(-2 * ln(input_1) ) * cos(2 * M_PI * input_2);
-    OutputGauss.Gauss_2 = sqrt(-2 * ln(input_1) ) * sin(2 * M_PI * input_2);
+    OutputGauss.Gauss_1 = sqrt(-2 * ln(input_1) ) * cos(2 * constants.pi * input_2);
+    OutputGauss.Gauss_2 = sqrt(-2 * ln(input_1) ) * sin(2 * constants.pi * input_2);
 
     return OutputGauss;
 }
 
 
-FENE FENEForce(POSITION nMinusTwoPos, POSITION nMinusOnePos, POSITION nPos)
+FENE FENEForce(POSITION nMinusTwoPos, POSITION nMinusOnePos, POSITION nPos, CONSTANTS constants)
 {
     FENE FENEForces;
 
@@ -145,32 +150,32 @@ FENE FENEForce(POSITION nMinusTwoPos, POSITION nMinusOnePos, POSITION nPos)
     Q_0 = ;
     FENEForces.FENE_x1 = (H* (nPos.xPos - nMinusOnePos.xPos)) / (1 - pow(nPos.xPos - nMinusOnePos.xPos, 2) / Q_0);
     FENEForces.FENE_x2 = (H* (nMinusOnePos.xPos - nMinusTwoPos.xPos)) / (1 - pow(nMinusOnePos.xPos - nMinusTwoPos.xPos, 2) / pow(Q_0, 2);
-    FENEForces.FENEy1 = (H* (nPos.yPos - nMinusOnePos.yPos)) / (1 - pow(nPos.yPos - nMinusOnePos.yPos, 2) / Q_0);
+    FENEForces.FENE_y1 = (H* (nPos.yPos - nMinusOnePos.yPos)) / (1 - pow(nPos.yPos - nMinusOnePos.yPos, 2) / Q_0);
     FENEForces.FENE_y2 = (H* (nMinusOnePos.yPos - nMinusTwoPos.yPos)) / (1 - pow(nMinusOnePos.yPos - nMinusTwoPos.yPos, 2) / pow(Q_0, 2);
-    FENE_z1 = (H* (nPos.zPos - nMinusOnePos.zPos)) / (1 - pow(nPos.zPos - nMinusOnePos.zPos, 2) / Q_0);
+    FENEForces.FENE_z1 = (H* (nPos.zPos - nMinusOnePos.zPos)) / (1 - pow(nPos.zPos - nMinusOnePos.zPos, 2) / Q_0);
     FENEForces.FENE_z2 = (H* (nMinusOnePos.zPos - nMinusTwoPos.zPos)) / (1 - pow(nMinusOnePos.zPos - nMinusTwoPos.zPos, 2) / pow(Q_0, 2);
 
     return FENEForces;
 }
 
 
-double DragForce (double BeadRadi, double FluidViscos, double FlowVel)
+double DragForce (CONSTANTS constants, double FlowVel)
 {
     double StokeForce;
 
-    StokeForce = - 6 * M_PI * FluidViscos * FlowVel * BeadRadi;
+    StokeForce = - 6 * constants.pi * constants.FluidViscos * FlowVel * constants.BeadRadi;
 
     return StokeForce;
 }
 
-BROWNIAN Brownian(){
-    BROWNIAN BrownianForces
+BROWNIAN Brownian(CONSTANTS constants){
+    BROWNIAN BrownianForces;
 
-    BrownianForce_x = sqrt((boltzman*T)/(pi*FluidViscos*BeadRadi*h))*  //randomnumber
-    BrownianForce_y = sqrt((boltzman*T)/(pi*FluidViscos*BeadRadi*h))*
-    BrownianForce_z = sqrt((boltzman*T)/(pi*FluidViscos*BeadRadi*h))*
+    BrownianForces.BrownianForce_x = sqrt((constants.boltzmann*constants.T)/(constants.pi*constants.FluidViscos*constants.BeadRadi*constants.h))*  //randomnumber
+    BrownianForces.BrownianForce_y = sqrt((constants.boltzmann*constants.T)/(constants.pi*constants.FluidViscos*constants.BeadRadi*constants.h))*
+    BrownianForces.BrownianForce_z = sqrt((constants.boltzmann*constants.T)/(constants.pi*constants.FluidViscos*constants.BeadRadi*constants.h))*
 
-    return BrownianForce;
+    return BrownianForces;
 }
 
 
