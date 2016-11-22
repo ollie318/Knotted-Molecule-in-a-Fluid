@@ -53,7 +53,6 @@ double DragForce (CONSTANTS c, double FlowVel);
 
 BROWNIAN Brownian(CONSTANTS c);
 
-double Diffusion(CONSTANTS c);
 
 //MAIN PROG
 
@@ -62,14 +61,19 @@ int main()
     int const N = 10;
 
     //double const radius = 1.0;
+    
 
+    //INITIALISE VARIABLES & CONSTANTS
+    
     CONSTANTS Const;
     Const.BeadRadi = ;
     Const.FluidViscos = ;
+    Const.h = ;
+    Const.T = ;                                                                         //Temperature in Kelvin
+    Const.D = (Boltzmann * Const.T) / (6 * pi * Const.FluidViscos * Const.BeadRadi);    //Diffusion coefficient
 
 
-
-    //INITIALISE VARIABLES
+    
 
 
     POSITION PositionArray[N];
@@ -191,13 +195,6 @@ BROWNIAN Brownian(CONSTANTS c){
 
     return BrownianForces;
 }
-
-double Diffusion(CONSTANTS c){
-    double D;
-    D = (Boltzmann*c.T)/(6*pi*c.FluidViscos*c.BeadRadi);
-    return D;
-}
-
 
 
 
