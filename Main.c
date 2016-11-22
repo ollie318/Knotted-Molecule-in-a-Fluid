@@ -16,8 +16,18 @@ typedef struct
 
 typedef struct
 {
-    double Gauss_1, Gauss_2
+    double Gauss_1, Gauss_2;
 } TWO_GAUSS;
+
+typedef struct
+{
+    double FENE_x1, FENE_x2, FENE_y1, FENE_y2, FENE_z1, FENE_z2;
+} FENE;
+
+typedef struct 
+{
+    double BrownianForce_x, BrownianForce_y, BrownianForce_z;
+} BROWNIAN;
 
 //FUNCTION PROTOTYPES
 
@@ -32,6 +42,8 @@ TWO_GAUSS BoxMullerTrans (double input_1, double input_2);
 double FENEForce(POSITION nMinusTwoPos, POSITION nMinusOnePos, POSITION Pos);
 
 double DragForce (double BeadRadi, double FluidViscos, double FlowVel);
+
+double Brownian();
 
 //MAIN PROG
 
@@ -125,20 +137,20 @@ TWO_GAUSS BoxMullerTrans (double input_1, double input_2)
 }
 
 
-double FENEForce(POSITION nMinusTwoPos, POSITION nMinusOnePos, POSITION nPos)
+FENE FENEForce(POSITION nMinusTwoPos, POSITION nMinusOnePos, POSITION nPos)
 {
-
-    double FENE_x1, FENE_x2, FENE_y1, FENE_y2, FENE_z1, FENE_z2, Q1, Q2, Q_0, H;
+    FENE FENEForces;
 
     H = ;
     Q_0 = ;
-    FENE_x1 = (H* (nPos.xPos - nMinusOnePos.xPos)) / (1 - pow(nPos.xPos - nMinusOnePos.xPos, 2) / Q_0);
-    FENE_x2 = (H* (nMinusOnePos.xPos - nMinusTwoPos.xPos)) / (1 - pow(nMinusOnePos.xPos - nMinusTwoPos.xPos, 2) / pow(Q_0, 2);
-    FENEy1 = (H* (nPos.yPos - nMinusOnePos.yPos)) / (1 - pow(nPos.yPos - nMinusOnePos.yPos, 2) / Q_0);
-    FENE_y2 = (H* (nMinusOnePos.yPos - nMinusTwoPos.yPos)) / (1 - pow(nMinusOnePos.yPos - nMinusTwoPos.yPos, 2) / pow(Q_0, 2);
+    FENEForces.FENE_x1 = (H* (nPos.xPos - nMinusOnePos.xPos)) / (1 - pow(nPos.xPos - nMinusOnePos.xPos, 2) / Q_0);
+    FENEForces.FENE_x2 = (H* (nMinusOnePos.xPos - nMinusTwoPos.xPos)) / (1 - pow(nMinusOnePos.xPos - nMinusTwoPos.xPos, 2) / pow(Q_0, 2);
+    FENEForces.FENEy1 = (H* (nPos.yPos - nMinusOnePos.yPos)) / (1 - pow(nPos.yPos - nMinusOnePos.yPos, 2) / Q_0);
+    FENEForces.FENE_y2 = (H* (nMinusOnePos.yPos - nMinusTwoPos.yPos)) / (1 - pow(nMinusOnePos.yPos - nMinusTwoPos.yPos, 2) / pow(Q_0, 2);
     FENE_z1 = (H* (nPos.zPos - nMinusOnePos.zPos)) / (1 - pow(nPos.zPos - nMinusOnePos.zPos, 2) / Q_0);
-    FENE_z2 = (H* (nMinusOnePos.zPos - nMinusTwoPos.zPos)) / (1 - pow(nMinusOnePos.zPos - nMinusTwoPos.zPos, 2) / pow(Q_0, 2);
+    FENEForces.FENE_z2 = (H* (nMinusOnePos.zPos - nMinusTwoPos.zPos)) / (1 - pow(nMinusOnePos.zPos - nMinusTwoPos.zPos, 2) / pow(Q_0, 2);
 
+    return FENEForces;
 }
 
 
@@ -151,7 +163,15 @@ double DragForce (double BeadRadi, double FluidViscos, double FlowVel)
     return StokeForce;
 }
 
+BROWNIAN Brownian(){
+    BROWNIAN BrownianForces
 
+    BrownianForce_x = sqrt((boltzman*T)/(pi*FluidViscos*BeadRadi*h))*  //randomnumber
+    BrownianForce_y = sqrt((boltzman*T)/(pi*FluidViscos*BeadRadi*h))*
+    BrownianForce_z = sqrt((boltzman*T)/(pi*FluidViscos*BeadRadi*h))*
+
+    return BrownianForce;
+}
 
 
 
