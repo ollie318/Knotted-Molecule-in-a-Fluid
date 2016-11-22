@@ -153,8 +153,11 @@ TWO_GAUSS BoxMullerTrans (CONSTANTS c, double input_1, double input_2)
 {
     TWO_GAUSS OutputGauss;
 
-    OutputGauss.Gauss_1 = sqrt(-2 * ln(input_1) ) * cos(2 * pi * input_2);
+    OutputGauss.Gauss_1 = sqrt(-2 * ln(input_1) ) * cos(2 * pi * input_2);          //If using a standard Gaussian
+    OutputGauss.Gauss_1 = OutputGauss.Gauss_1 * sqrt(2 c.D * )                      //Multiply by standard deviation and add mean (0) for our Gaussian
+
     OutputGauss.Gauss_2 = sqrt(-2 * ln(input_1) ) * sin(2 * pi * input_2);
+    OutputGauss.Gauss_2 = OutputGauss.Gauss_2 * sqrt(2 c.D * ) 
 
     return OutputGauss;
 }
