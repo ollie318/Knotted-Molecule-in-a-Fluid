@@ -3,6 +3,7 @@
 #include <math.h>
 
 #define Boltzmann 1.38064852 E -23
+#define pi 3.1415926535897932
 
 //STRUCTURE/s
 
@@ -33,7 +34,7 @@ typedef struct
 
 typedef struct 
 {
-    double pi, BeadRadi, FluidViscos, h, T, D;
+    double BeadRadi, FluidViscos, h, T, D;
 } CONSTANTS;
 
 //FUNCTION PROTOTYPES
@@ -60,7 +61,16 @@ int main()
 {
     int const N = 10;
 
-    double const radius = 1.0;
+    //double const radius = 1.0;
+
+    CONSTANTS Const;
+    Const.BeadRadi = ;
+    Const.FluidViscos = ;
+
+
+
+    //INITIALISE VARIABLES
+
 
     POSITION PositionArray[N];
     
@@ -128,8 +138,8 @@ double GenRandDouble(double minDoub, double maxDoub)
 ANGLES CalcNextAngles(CONSTANTS c)
 {
     ANGLES NewAngles;
-    NewAngles.theta = GenRandDouble(-c.pi/4, c.pi/4);
-    NewAngles.phi = GenRandDouble(-c.pi, c.pi);
+    NewAngles.theta = GenRandDouble(-pi/4, pi/4);
+    NewAngles.phi = GenRandDouble(-pi, pi);
 
     return NewAngles;
 }
@@ -139,8 +149,8 @@ TWO_GAUSS BoxMullerTrans (CONSTANTS c, double input_1, double input_2)
 {
     TWO_GAUSS OutputGauss;
 
-    OutputGauss.Gauss_1 = sqrt(-2 * ln(input_1) ) * cos(2 * c.pi * input_2);
-    OutputGauss.Gauss_2 = sqrt(-2 * ln(input_1) ) * sin(2 * c.pi * input_2);
+    OutputGauss.Gauss_1 = sqrt(-2 * ln(input_1) ) * cos(2 * pi * input_2);
+    OutputGauss.Gauss_2 = sqrt(-2 * ln(input_1) ) * sin(2 * pi * input_2);
 
     return OutputGauss;
 }
@@ -167,7 +177,7 @@ double DragForce (CONSTANTS c, double FlowVel)
 {
     double StokeForce;
 
-    StokeForce = - 6 * c.pi * c.FluidViscos * FlowVel * c.BeadRadi;
+    StokeForce = - 6 * pi * c.FluidViscos * FlowVel * c.BeadRadi;
 
     return StokeForce;
 }
@@ -184,7 +194,7 @@ BROWNIAN Brownian(CONSTANTS c){
 
 double Diffusion(CONSTANTS c){
     double D;
-    D = (Boltzmann*c.T)/(6*c.pi*c.FluidViscos*c.BeadRadi);
+    D = (Boltzmann*c.T)/(6*pi*c.FluidViscos*c.BeadRadi);
     return D;
 }
 
