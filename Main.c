@@ -31,7 +31,7 @@ typedef struct
 
 typedef struct 
 {
-    double pi, BeadRadi, FluidViscos, boltzmann, h, T;
+    double pi, BeadRadi, FluidViscos, boltzmann, h, T, D;
 } CONSTANTS;
 
 //FUNCTION PROTOTYPES
@@ -49,6 +49,8 @@ FENE FENEForce(POSITION nMinusTwoPos, POSITION nMinusOnePos, POSITION Pos, CONST
 double DragForce (CONSTANTS c, double FlowVel);
 
 BROWNIAN Brownian(CONSTANTS c);
+
+double Diffusion(CONSTANTS c);
 
 //MAIN PROG
 
@@ -102,7 +104,7 @@ POSITION CalcNextBallPos(POSITION nMinusTwoPos, POSITION nMinusOnePos)
     */
 
 
-    ANGLES nAngles = CalcNextAngles(CONSTANTS c);
+    ANGLES nAngles = CalcNextAngles();
 
     nPos.xPos = nMinusOnePos.xPos + sin(nAngles.theta) * cos(nAngles.phi);
     nPos.yPos = nMinusOnePos.yPos + sin(nAngles.theta) * sin(nAngles.phi);      //This line appears to have the error
@@ -171,14 +173,18 @@ double DragForce (CONSTANTS c, double FlowVel)
 BROWNIAN Brownian(CONSTANTS c){
     BROWNIAN BrownianForces;
 
-    BrownianForces.BrownianForce_x = sqrt((c.boltzmann*c.T)/(c.pi*c.FluidViscos*c.BeadRadi*c.h))*  //randomnumber from 1 to -1
-    BrownianForces.BrownianForce_y = sqrt((c.boltzmann*c.T)/(c.pi*c.FluidViscos*c.BeadRadi*c.h))*
-    BrownianForces.BrownianForce_z = sqrt((c.boltzmann*c.T)/(c.pi*c.FluidViscos*c.BeadRadi*c.h))*
+    BrownianForces.BrownianForce_x = sqrt(6*c.D/c.h)*  //randomnumber from 1 to -1
+    BrownianForces.BrownianForce_y = sqrt(6*c.D/c.h)*
+    BrownianForces.BrownianForce_z = sqrt(6*c.D/c.h)*
 
     return BrownianForces;
 }
 
-
+double Diffusion(CONSTANTS c){
+    double D;
+    D = (c.boltzmann*c.T)/(6*c.pi*c.FluidViscos*c.BeadRadi);
+    return D;
+}
 
 
 
