@@ -14,6 +14,11 @@ typedef struct
     double theta, psi;
 } ANGLES;
 
+typedef struct
+{
+    double Gauss_1, Gauss_2
+} TWO_GAUSS;
+
 //FUNCTION PROTOTYPES
 
 POSITION CalcNextBallPos(POSITION nMinusTwoPos, POSITION nMinusOnePos);
@@ -21,6 +26,8 @@ POSITION CalcNextBallPos(POSITION nMinusTwoPos, POSITION nMinusOnePos);
 double GenRandDouble(double minDoub, double maxDoub);                   //Note: not truly random, testing purposes only!
 
 ANGLES CalcNextAngles();
+
+TWO_GAUSS BoxMullerTrans (double input_1, double input_2);
 
 double FENEForce(POSITION nMinusTwoPos, POSITION nMinusOnePos, POSITION Pos);
 
@@ -104,6 +111,17 @@ ANGLES CalcNextAngles()
     NewAngles.phi = GenRandDouble(-pi, pi);
 
     return NewAngles;
+}
+
+
+TWO_GAUSS BoxMullerTrans (double input_1, double input_2)
+{
+    TWO_GAUSS OutputGauss;
+
+    OutputGauss.Gauss_1 = sqrt(-2 * ln(input_1) ) * cos(2 * M_PI * input_2);
+    OutputGauss.Gauss_2 = sqrt(-2 * ln(input_1) ) * sin(2 * M_PI * input_2);
+
+    return OutputGauss;
 }
 
 
