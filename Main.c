@@ -2,6 +2,8 @@
 #include <stdlib.h>
 #include <math.h>
 
+#define Boltzmann 1.38064852 E -23
+
 //STRUCTURE/s
 
 typedef struct
@@ -31,7 +33,7 @@ typedef struct
 
 typedef struct 
 {
-    double pi, BeadRadi, FluidViscos, boltzmann, h, T, D;
+    double pi, BeadRadi, FluidViscos, h, T, D;
 } CONSTANTS;
 
 //FUNCTION PROTOTYPES
@@ -182,7 +184,7 @@ BROWNIAN Brownian(CONSTANTS c){
 
 double Diffusion(CONSTANTS c){
     double D;
-    D = (c.boltzmann*c.T)/(6*c.pi*c.FluidViscos*c.BeadRadi);
+    D = (c.Boltzmann*c.T)/(6*c.pi*c.FluidViscos*c.BeadRadi);
     return D;
 }
 
