@@ -5,6 +5,8 @@
 #define Boltzmann 1.38064852E-23
 #define pi 3.1415926535897932
 
+//const int N = 20;
+
 //STRUCTURE/s
 
 typedef struct
@@ -27,20 +29,20 @@ typedef struct
     double FENE_x1, FENE_x2, FENE_y1, FENE_y2, FENE_z1, FENE_z2;
 } FENE;
 
-typedef struct 
+typedef struct
 {
     double BrownianForce_x, BrownianForce_y, BrownianForce_z;
 } BROWNIAN;
 
-typedef struct 
+typedef struct
 {
     double BeadRadi, FluidViscos, h, T, D, FlowVel, H;
-    const int N;
+    int N;
 } CONSTANTS;
 
 //FUNCTION PROTOTYPES
 
-POSITION CalcNextBallPos(POSITION nMinusTwoPos, POSITION nMinusOnePos);
+POSITION CalcNextBallPos(POSITION nMinusTwoPos, POSITION nMinusOnePos, CONSTANTS c);
 
 double GenRandDouble(double minDoub, double maxDoub);                   //Note: not truly random, testing purposes only!
 
@@ -65,21 +67,27 @@ int main()
 {
 
     //double const radius = 1.0;
-    
+
 
     //INITIALISE VARIABLES & CONSTANTS
-    
+
     CONSTANTS c;
     c.BeadRadi = 0.000000002;       									//diameter of a DNA helix
     c.FluidViscos = 1;
-    c.h = 0.01;        
+    c.h = 0.01;
     c.T = 298;                                                          //Temperature in Kelvin
     c.D = (Boltzmann * c.T) / (6 * pi * c.FluidViscos * c.BeadRadi);    //Diffusion coefficient
     c.H = (3*Boltzmann*c.T)/(1.8 E-9 * 4.7 E-12);       				//Taken from Simons paper, values for polystyrene not DNA
     c.N = 20;
     POSITION PositionArray[c.N];
     double radius = 1;
-    
+
+    int loopcount;
+    int noOfRuns;
+    double t = 0;
+
+    noOfRuns = 1000;
+
     FILE *File_BeadPos;
 
     File_BeadPos = fopen("File_BeadPos.txt", "w");
@@ -87,31 +95,33 @@ int main()
     PositionArray[0].xPos = 0;                  //Initialising pos1 to 0,0,0
     PositionArray[0].yPos = 0;
     PositionArray[0].zPos = 0;
-    
+
     PositionArray[1].xPos = PositionArray[0].xPos + radius;
     PositionArray[1].yPos = PositionArray[0].yPos + radius;
     PositionArray[1].zPos = PositionArray[0].zPos + radius;
 
-    for (int i = 0; i <= c.N; ++i)
+    int i;
+    for (i = 0; i <= c.N; ++i)
     {
-        PositionArray[i] = CalcNextBallPos(PositionArray[i-2], PositionArray[i-1]);
+        PositionArray[i] = CalcNextBallPos(PositionArray[i-2], PositionArray[i-1], c);
     }
 
-    fprintf(File_BeadPos, "atom 0:%lf\tradius 1.0\tname S\n" ,  N);
+    fprintf(File_BeadPos, "atom 0:%lf\tradius 1.0\tname S\n" ,  c.N);
 
-    for(double t =0; t<100; t+=c.h){
-        printFile(File_BeadPos, N);
-        update(nMinusOnePos, nMinusTwoPos, nPos, c);
+    for(loopcount = 0; loopcount < noOfRuns; loopcount++){
+        t += c.h;
+        printFile(File_BeadPos, c.N);
+        update(PositionArray[0], PositionArray[1], PositionArray[2], c);
     }
 
     fclose(File_BeadPos);
-    
+
     return 0;
 }
 
 //FUNCTIONS
 
-POSITION CalcNextBallPos(POSITION nMinusTwoPos, POSITION nMinusOnePos)
+POSITION CalcNextBallPos(POSITION nMinusTwoPos, POSITION nMinusOnePos, CONSTANTS c)
 {
     POSITION nPos;
     /*
@@ -155,10 +165,10 @@ TWO_GAUSS BoxMullerTrans (CONSTANTS c, double input_1, double input_2)
     TWO_GAUSS OutputGauss;
 
     OutputGauss.Gauss_1 = sqrt(-2 * ln(input_1) ) * cos(2 * pi * input_2);          //If using a standard Gaussian
-    OutputGauss.Gauss_1 = OutputGauss.Gauss_1 * sqrt(2 c.D * c.h) + 0;                     //Multiply by standard deviation and add mean (0) for our Gaussian
+    OutputGauss.Gauss_1 = OutputGauss.Gauss_1 * sqrt(2 * c.D * c.h) + 0;                     //Multiply by standard deviation and add mean (0) for our Gaussian
 
     OutputGauss.Gauss_2 = sqrt(-2 * ln(input_1) ) * sin(2 * pi * input_2);
-    OutputGauss.Gauss_2 = OutputGauss.Gauss_2 * sqrt(2 c.D * c.h) + 0;
+    OutputGauss.Gauss_2 = OutputGauss.Gauss_2 * sqrt(2 * c.D * c.h) + 0;
 
     return OutputGauss;
 }
@@ -167,14 +177,14 @@ TWO_GAUSS BoxMullerTrans (CONSTANTS c, double input_1, double input_2)
 FENE FENEForce(POSITION nMinusTwoPos, POSITION nMinusOnePos, POSITION nPos, CONSTANTS c)
 {
     FENE FENEForces;
-    double Q_0 = 236.34E-9;
+    double Q_0 = 236.34 E-9;
 
     FENEForces.FENE_x1 = (c.H * (nPos.xPos - nMinusOnePos.xPos)) / (1 - pow(nPos.xPos - nMinusOnePos.xPos, 2) / Q_0);
-    FENEForces.FENE_x2 = (c.H * (nMinusOnePos.xPos - nMinusTwoPos.xPos)) / (1 - pow(nMinusOnePos.xPos - nMinusTwoPos.xPos, 2) / pow(Q_0, 2);
+    FENEForces.FENE_x2 = (c.H * (nMinusOnePos.xPos - nMinusTwoPos.xPos)) / (1 - pow(nMinusOnePos.xPos - nMinusTwoPos.xPos, 2) / pow(Q_0, 2));
     FENEForces.FENE_y1 = (c.H * (nPos.yPos - nMinusOnePos.yPos)) / (1 - pow(nPos.yPos - nMinusOnePos.yPos, 2) / Q_0);
-    FENEForces.FENE_y2 = (c.H * (nMinusOnePos.yPos - nMinusTwoPos.yPos)) / (1 - pow(nMinusOnePos.yPos - nMinusTwoPos.yPos, 2) / pow(Q_0, 2);
+    FENEForces.FENE_y2 = (c.H * (nMinusOnePos.yPos - nMinusTwoPos.yPos)) / (1 - pow(nMinusOnePos.yPos - nMinusTwoPos.yPos, 2) / pow(Q_0, 2));
     FENEForces.FENE_z1 = (c.H * (nPos.zPos - nMinusOnePos.zPos)) / (1 - pow(nPos.zPos - nMinusOnePos.zPos, 2) / Q_0);
-    FENEForces.FENE_z2 = (c.H * (nMinusOnePos.zPos - nMinusTwoPos.zPos)) / (1 - pow(nMinusOnePos.zPos - nMinusTwoPos.zPos, 2) / pow(Q_0, 2);
+    FENEForces.FENE_z2 = (c.H * (nMinusOnePos.zPos - nMinusTwoPos.zPos)) / (1 - pow(nMinusOnePos.zPos - nMinusTwoPos.zPos, 2) / pow(Q_0, 2));
 
     return FENEForces;
 }
@@ -201,16 +211,17 @@ BROWNIAN Brownian(CONSTANTS c){
 
 void printFile(FILE* File_BeadPos, int N){
     fprintf(File_BeadPos, "timestep\n");
-    for(int i = 0; i <= N; i++)
-    {        
-        fprintf(File_BeadPos, "%lf\t%lf\t%lf\n\n", PositionArray[i].xPos, PositionArray[i].yPos, PositionArray[i].zPos);
-    }   
+    int j;
+    for(j = 0; j <= N; j++)
+    {
+        fprintf(File_BeadPos, "%lf\t%lf\t%lf\n\n", PositionArray[j].xPos, PositionArray[j].yPos, PositionArray[j].zPos);
+    }
 }
 
 void update(POSITION nMinusOnePos, POSITION nMinusTwoPos, POSITION nPos, CONSTANTS c){
-    FENEForce(POSITION nMinusTwoPos, POSITION nMinusOnePos, POSITION nPos, CONSTANTS c);
-    DragForce(CONSTANTS c);
-    Brownian(CONSTANTS c);
+    FENEForce(nMinusTwoPos, nMinusOnePos, nPos, c);
+    DragForce(c);
+    Brownian(c);
 
 }
 
