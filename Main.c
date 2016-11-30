@@ -70,12 +70,12 @@ int main()
     //INITIALISE VARIABLES & CONSTANTS
     
     CONSTANTS c;
-    c.BeadRadi = 0.000000002;       //diameter of a DNA helix
+    c.BeadRadi = 0.000000002;       									//diameter of a DNA helix
     c.FluidViscos = 1;
     c.h = 0.01;        
-    c.T = 298;                                                                               //Temperature in Kelvin
+    c.T = 298;                                                          //Temperature in Kelvin
     c.D = (Boltzmann * c.T) / (6 * pi * c.FluidViscos * c.BeadRadi);    //Diffusion coefficient
-    c.H = (3*Boltzmann*c.T)/(1.8 E-9 * 4.7 E-12);       //Taken from Simons paper, values for polystyrene not DNA
+    c.H = (3*Boltzmann*c.T)/(1.8 E-9 * 4.7 E-12);       				//Taken from Simons paper, values for polystyrene not DNA
     c.N = 20;
     POSITION PositionArray[c.N];
     double radius = 1;
@@ -155,10 +155,10 @@ TWO_GAUSS BoxMullerTrans (CONSTANTS c, double input_1, double input_2)
     TWO_GAUSS OutputGauss;
 
     OutputGauss.Gauss_1 = sqrt(-2 * ln(input_1) ) * cos(2 * pi * input_2);          //If using a standard Gaussian
-    OutputGauss.Gauss_1 = OutputGauss.Gauss_1 * sqrt(2 c.D * )                      //Multiply by standard deviation and add mean (0) for our Gaussian
+    OutputGauss.Gauss_1 = OutputGauss.Gauss_1 * sqrt(2 c.D * c.h) + 0;                     //Multiply by standard deviation and add mean (0) for our Gaussian
 
     OutputGauss.Gauss_2 = sqrt(-2 * ln(input_1) ) * sin(2 * pi * input_2);
-    OutputGauss.Gauss_2 = OutputGauss.Gauss_2 * sqrt(2 c.D * ) 
+    OutputGauss.Gauss_2 = OutputGauss.Gauss_2 * sqrt(2 c.D * c.h) + 0;
 
     return OutputGauss;
 }
@@ -169,12 +169,12 @@ FENE FENEForce(POSITION nMinusTwoPos, POSITION nMinusOnePos, POSITION nPos, CONS
     FENE FENEForces;
     double Q_0 = 236.34E-9;
 
-    FENEForces.FENE_x1 = (c.H* (nPos.xPos - nMinusOnePos.xPos)) / (1 - pow(nPos.xPos - nMinusOnePos.xPos, 2) / Q_0);
-    FENEForces.FENE_x2 = (c.H* (nMinusOnePos.xPos - nMinusTwoPos.xPos)) / (1 - pow(nMinusOnePos.xPos - nMinusTwoPos.xPos, 2) / pow(Q_0, 2);
-    FENEForces.FENE_y1 = (c.H* (nPos.yPos - nMinusOnePos.yPos)) / (1 - pow(nPos.yPos - nMinusOnePos.yPos, 2) / Q_0);
-    FENEForces.FENE_y2 = (c.H* (nMinusOnePos.yPos - nMinusTwoPos.yPos)) / (1 - pow(nMinusOnePos.yPos - nMinusTwoPos.yPos, 2) / pow(Q_0, 2);
-    FENEForces.FENE_z1 = (c.H* (nPos.zPos - nMinusOnePos.zPos)) / (1 - pow(nPos.zPos - nMinusOnePos.zPos, 2) / Q_0);
-    FENEForces.FENE_z2 = (c.H* (nMinusOnePos.zPos - nMinusTwoPos.zPos)) / (1 - pow(nMinusOnePos.zPos - nMinusTwoPos.zPos, 2) / pow(Q_0, 2);
+    FENEForces.FENE_x1 = (c.H * (nPos.xPos - nMinusOnePos.xPos)) / (1 - pow(nPos.xPos - nMinusOnePos.xPos, 2) / Q_0);
+    FENEForces.FENE_x2 = (c.H * (nMinusOnePos.xPos - nMinusTwoPos.xPos)) / (1 - pow(nMinusOnePos.xPos - nMinusTwoPos.xPos, 2) / pow(Q_0, 2);
+    FENEForces.FENE_y1 = (c.H * (nPos.yPos - nMinusOnePos.yPos)) / (1 - pow(nPos.yPos - nMinusOnePos.yPos, 2) / Q_0);
+    FENEForces.FENE_y2 = (c.H * (nMinusOnePos.yPos - nMinusTwoPos.yPos)) / (1 - pow(nMinusOnePos.yPos - nMinusTwoPos.yPos, 2) / pow(Q_0, 2);
+    FENEForces.FENE_z1 = (c.H * (nPos.zPos - nMinusOnePos.zPos)) / (1 - pow(nPos.zPos - nMinusOnePos.zPos, 2) / Q_0);
+    FENEForces.FENE_z2 = (c.H * (nMinusOnePos.zPos - nMinusTwoPos.zPos)) / (1 - pow(nMinusOnePos.zPos - nMinusTwoPos.zPos, 2) / pow(Q_0, 2);
 
     return FENEForces;
 }
@@ -192,9 +192,9 @@ double DragForce (CONSTANTS c)
 BROWNIAN Brownian(CONSTANTS c){
     BROWNIAN BrownianForces;
 
-    BrownianForces.BrownianForce_x = sqrt(6*c.D/c.h)*  //randomnumber from 1 to -1
-    BrownianForces.BrownianForce_y = sqrt(6*c.D/c.h)*
-    BrownianForces.BrownianForce_z = sqrt(6*c.D/c.h)*
+    BrownianForces.BrownianForce_x = sqrt(6 * c.D / c.h) * GenRandDouble(-1, 1);			//random number from 1 to -1
+    BrownianForces.BrownianForce_y = sqrt(6 * c.D / c.h) * GenRandDouble(-1, 1);
+    BrownianForces.BrownianForce_z = sqrt(6 * c.D / c.h) * GenRandDouble(-1, 1);
 
     return BrownianForces;
 }
