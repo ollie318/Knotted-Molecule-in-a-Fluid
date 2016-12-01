@@ -70,7 +70,7 @@ int main()
     //INITIALISE VARIABLES & CONSTANTS
     
     CONSTANTS c;
-    c.BeadRadi = 0.000000002;                                           //diameter of a DNA helix
+    c.BeadRadi = 0.002;                                         //diameter of a DNA helix
     c.FluidViscos = 1;
     c.FlowVel = 12;
     c.h = 0.01;
