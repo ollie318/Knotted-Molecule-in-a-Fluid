@@ -56,7 +56,7 @@ BROWNIAN Brownian(CONSTANTS c);
 
 void printFile(FILE *File_BeadPos, POSITION *PositionArray);
 
-void update(POSITION nPos, POSITION nMinusOnePos, POSITION *nPosPlusOne, CONSTANTS c);
+void update(POSITION *nPos, POSITION nMinusOnePos, POSITION nPosPlusOne, CONSTANTS c);
 
 
 //MAIN PROG
@@ -70,10 +70,10 @@ int main()
     //INITIALISE VARIABLES & CONSTANTS
     
     CONSTANTS c;
-    c.BeadRadi = 0.002;                                         //diameter of a DNA helix
+    c.BeadRadi = 70E-12;                                        //diameter of a DNA helix
     c.FluidViscos = 1;
     c.FlowVel = 12;
-    c.h = 0.01;
+    c.h = 10;
     c.T = 298;                                                          //Temperature in Kelvin
     c.D = (Boltzmann * c.T) / (6 * pi * c.FluidViscos * c.BeadRadi);    //Diffusion coefficient
     c.H = (3*Boltzmann*c.T)/(1.8E-9 * 4.7E-12);                     //Taken from Simons paper, values for polystyrene not DNA
@@ -100,19 +100,22 @@ int main()
     }
     
     fprintf(File_BeadPos, "atom 0:%d\tradius 1.0\tname S\n" ,  N);
-    
+    i = 0;
+    for(i = 0; i<N; i++){
+        fprintf(File_BeadPos, "bond %d:%d\n", i, i+1);
+    }
     
     int loopcount;
     int noOfRuns;
     double t = 0;
     
-    noOfRuns = 1000;
+    noOfRuns = 100000;
     
     for(loopcount = 0; loopcount < noOfRuns; loopcount++){
         t += c.h;
         int i =1;
         for(i = 1; i<=N; i++){
-            update(PositionArray[i-1], PositionArray[i+1], &PositionArray[i], c);
+            update(&PositionArray[i], PositionArray[i-1], PositionArray[i+1], c);
         }
         printFile(File_BeadPos, PositionArray);
     }
@@ -138,7 +141,7 @@ POSITION CalcNextBallPos(POSITION nMinusOnePos, POSITION nPos, CONSTANTS c)
     
     nPosPlusOne.xPos = nPos.xPos + sin(nAngles.theta) * cos(nAngles.phi);
     nPosPlusOne.yPos = nPos.yPos + sin(nAngles.theta) * sin(nAngles.phi);      //This line appears to have the error
-    nPosPlusOne.zPos = nPos.zPos + cos(nAngles.theta);
+    nPosPlusOne.zPos = nPos.zPos + 236.34E-9*(cos(nAngles.theta));
     
     return nPosPlusOne;
 }
@@ -214,19 +217,20 @@ void printFile(FILE *File_BeadPos, POSITION *PositionArray){
     int j;
     for(j = 0; j <= N; j++)
     {
-        fprintf(File_BeadPos, "%lf\t%lf\t%lf\n", PositionArray[j].xPos, PositionArray[j].yPos, PositionArray[j].zPos);
+        fprintf(File_BeadPos, "%.14lf\t%.14lf\t%.14lf\n", PositionArray[j].xPos, PositionArray[j].yPos, PositionArray[j].zPos);
     }
 }
 
-void update(POSITION nPos, POSITION nMinusOnePos, POSITION* nPosPlusOne, CONSTANTS c){
+void update(POSITION* nPos, POSITION nMinusOnePos, POSITION nPosPlusOne, CONSTANTS c){
     BROWNIAN BrownianForces = Brownian(c);
-    FENE FENEForces = FENEForce(nMinusOnePos, nPos, *nPosPlusOne, c);
+    FENE FENEForces = FENEForce(nMinusOnePos, *nPos, nPosPlusOne, c);
     
-    nPosPlusOne -> xPos += c.h*(FENEForces.FENE_x1 + BrownianForces.BrownianForce_x);
+    nPos -> xPos += c.h*(FENEForces.FENE_x1 + BrownianForces.BrownianForce_x);
     
-    nPosPlusOne -> yPos += c.h*(FENEForces.FENE_y1 + BrownianForces.BrownianForce_y);
+    nPos -> yPos += c.h*(FENEForces.FENE_y1 + BrownianForces.BrownianForce_y);
     
-    nPosPlusOne -> zPos += c.h*(FENEForces.FENE_z1 + BrownianForces.BrownianForce_z + DragForce(c));
+    nPos -> zPos += c.h*(FENEForces.FENE_z1 + BrownianForces.BrownianForce_z + DragForce(c));
+    printf("%.12lf\t%.12lf\n", nPos -> xPos, nPos -> zPos);
 }
 
 
