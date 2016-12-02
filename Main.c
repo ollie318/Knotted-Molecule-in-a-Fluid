@@ -26,7 +26,7 @@ typedef struct
 
 typedef struct
 {
-     double FENE_x1, FENE_x2, FENE_y1, FENE_y2, FENE_z1, FENE_z2;
+    double FENE_x1, FENE_x2, FENE_y1, FENE_y2, FENE_z1, FENE_z2;
 } FENE;
 
 typedef struct
@@ -198,12 +198,12 @@ FENE FENEForce(POSITION nMinusOnePos, POSITION nPos, POSITION nPosPlusOne, CONST
 {
     FENE FENEForces;
     
-    FENEForces.FENE_x1 = (c.H * (nPosPlusOne.xPos - nPos.xPos)) / (1 - pow(nPosPlusOne.xPos - nPos.xPos, 2) / pow(c.Q_0, 2));
-    FENEForces.FENE_x2 = -(c.H * (nPos.xPos - nMinusOnePos.xPos)) / (1 - pow(nPos.xPos - nMinusOnePos.xPos, 2) / pow(c.Q_0, 2));
-    FENEForces.FENE_y1 = (c.H * (nPosPlusOne.yPos - nPos.yPos)) / (1 - pow(nPosPlusOne.yPos - nPos.yPos, 2) / pow(c.Q_0, 2));
-    FENEForces.FENE_y2 = -(c.H * (nPos.yPos - nMinusOnePos.yPos)) / (1 - pow(nPos.yPos - nMinusOnePos.yPos, 2) / pow(c.Q_0, 2));
-    FENEForces.FENE_z1 = (c.H * (nPosPlusOne.zPos - nPos.zPos)) / (1 - pow(nPosPlusOne.zPos - nPos.zPos, 2) / pow(c.Q_0, 2));
-    FENEForces.FENE_z2 = -(c.H * (nPos.zPos - nMinusOnePos.zPos)) / (1 - pow(nPos.zPos - nMinusOnePos.zPos, 2) / pow(c.Q_0, 2));
+    FENEForces.FENE_x1 = (c.H * (nPosPlusOne.xPos - nPos.xPos)) / (1 - pow(nPosPlusOne.xPos - nPos.xPos, 2) / c.Q_0);
+    FENEForces.FENE_x2 = (c.H * (nPos.xPos - nMinusOnePos.xPos)) / (1 - pow(nPos.xPos - nMinusOnePos.xPos, 2) / pow(c.Q_0, 2));
+    FENEForces.FENE_y1 = (c.H * (nPosPlusOne.yPos - nPos.yPos)) / (1 - pow(nPosPlusOne.yPos - nPos.yPos, 2) / c.Q_0);
+    FENEForces.FENE_y2 = (c.H * (nPos.yPos - nMinusOnePos.yPos)) / (1 - pow(nPos.yPos - nMinusOnePos.yPos, 2) / pow(c.Q_0, 2));
+    FENEForces.FENE_z1 = (c.H * (nPosPlusOne.zPos - nPos.zPos)) / (1 - pow(nPosPlusOne.zPos - nPos.zPos, 2) / c.Q_0);
+    FENEForces.FENE_z2 = (c.H * (nPos.zPos - nMinusOnePos.zPos)) / (1 - pow(nPos.zPos - nMinusOnePos.zPos, 2) / pow(c.Q_0, 2));
     return FENEForces;
 }
 
@@ -230,7 +230,7 @@ void printFile(FILE *File_BeadPos, POSITION *PositionArray){
     int j;
     for(j = 0; j <= N; j++)
     {
-        fprintf(File_BeadPos, "%.24lf\t%.24lf\t%.24lf\n", PositionArray[j].xPos, PositionArray[j].yPos, PositionArray[j].zPos);
+        fprintf(File_BeadPos, "%.14lf\t%.14lf\t%.14lf\n", PositionArray[j].xPos, PositionArray[j].yPos, PositionArray[j].zPos);
     }
 }
 
@@ -238,12 +238,11 @@ void update(POSITION nPos, POSITION nMinusOnePos, POSITION* nPosPlusOne, CONSTAN
     BROWNIAN BrownianForces = Brownian(c);
     FENE FENEForces = FENEForce(nMinusOnePos, nPos, *nPosPlusOne, c);
     
-    nPosPlusOne -> xPos += c.h*(FENEForces.FENE_x1 + FENEForces.FENE_x2);
+    nPosPlusOne -> xPos += c.h*(FENEForces.FENE_x1 + BrownianForces.BrownianForce_x);
     
-    nPosPlusOne -> yPos += c.h*(FENEForces.FENE_y1 + FENEForces.FENE_y2);
+    nPosPlusOne -> yPos += c.h*(FENEForces.FENE_y1 + BrownianForces.BrownianForce_y);
     
-    nPosPlusOne -> zPos += c.h*(FENEForces.FENE_z1 + FENEForces.FENE_z2);
-    
+    nPosPlusOne -> zPos += c.h*(FENEForces.FENE_z1 + BrownianForces.BrownianForce_z + DragForce(c));
 }
 
 
