@@ -82,11 +82,14 @@ int main()
     c.h = 0.1;															//Time step?
     c.T = 298;                                                          //Temperature in Kelvin
     c.D = (Boltzmann * c.T) / (6 * pi * c.FluidViscos * c.BeadRadi);    //Diffusion coefficient
+
+    //Spring coefficient calcs
     c.N_k = 2626;
     c.b_k = 1.8E-9;
     c.N_ks = c.N_k/N;
     c.L_s = c.N_ks*c.b_k;
     c.H = (3*Boltzmann*c.T)/(c.L_s*c.b_k);                         		//Taken from Simons paper, values for polystyrene not DNA
+
     //c.m = 1.9927E-26;
     c.m = 0.104 / AvogadroNum;											//Bead mass for styrene
     c.Q_0 = 236.34E-9;													//Average bond length
@@ -96,7 +99,7 @@ int main()
     PositionArray[0].yPos = 0;
     PositionArray[0].zPos = 0;
 
-    PositionArray[1].xPos = PositionArray[0].xPos + c.Q_0;
+    PositionArray[1].xPos = PositionArray[0].xPos + (0.8 * c.Q_0);
     PositionArray[1].yPos = PositionArray[0].yPos;
     PositionArray[1].zPos = PositionArray[0].zPos;
 
@@ -119,6 +122,8 @@ int main()
     }
 
 
+    printFile(File_BeadPos, PositionArray);
+
     //LOOP FOR TIMESTEPPING
     int loopcount;
     int noOfRuns;
@@ -133,7 +138,7 @@ int main()
 
         for(i_dash = 1; i_dash <= N; i_dash ++){
 
-            PositionArray[i_dash] = update(PositionArray[i_dash - 1], PositionArray[i_dash], PositionArray[i_dash + 1], c);
+            PositionArray[i_dash] = update(PositionArray[i_dash-1], PositionArray[i_dash], PositionArray[i_dash+1], c);
         }
         printFile(File_BeadPos, PositionArray);
     }
