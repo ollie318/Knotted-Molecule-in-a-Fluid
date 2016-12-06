@@ -42,7 +42,7 @@ typedef struct
 
 //FUNCTION PROTOTYPES
 
-POSITION CalcNextBallPos(POSITION nMinusOnePos, POSITION nPos, ANGLES LastAngles, CONSTANTS c);
+POSITION CalcNextBallPos(POSITION nMinusOnePos, ANGLES LastAngles, CONSTANTS c);
 
 double GenRandDouble(double minDoub, double maxDoub);                   //Note: not truly random, testing purposes only!
 
@@ -50,7 +50,7 @@ ANGLES CalcNextAngles(CONSTANTS c);
 
 TWO_GAUSS BoxMullerTrans (CONSTANTS c, double input_1, double input_2);
 
-FENE FENEForce(POSITION nMinusOnePos, POSITION nPos, POSITION Pos, CONSTANTS c);
+FENE FENEForce(POSITION nMinusOnePos, POSITION nPos, POSITION nPosPlusOne, CONSTANTS c);
 
 double DragForce (CONSTANTS c);
 
@@ -58,7 +58,7 @@ BROWNIAN Brownian(CONSTANTS c);
 
 void printFile(FILE *File_BeadPos, POSITION *PositionArray);
 
-POSITION update(POSITION nPos, POSITION nMinusOnePos, POSITION nPosPlusOne, CONSTANTS c);
+POSITION update(POSITION nMinusOnePos, POSITION nPos, POSITION nPosPlusOne, CONSTANTS c);
 
 
 //MAIN PROG
@@ -101,12 +101,12 @@ int main()
     PositionArray[1].zPos = PositionArray[0].zPos;
 
     int i;
-    ANGLES LastAngles;
-    LastAngles.phi = 0;
-    LastAngles.theta = pi/2;                                                             //Writes initial positions
+    ANGLES LastBondAngles;
+    LastBondAngles.phi = 0;
+    LastBondAngles.theta = pi/2;                                                             //Writes initial positions
     for (i = 2; i <= N; i++)                                            //i starts at 2 because 0 & 1 already set
     {
-        PositionArray[i] = CalcNextBallPos(PositionArray[i-2], PositionArray[i-1], LastAngles, c);
+        PositionArray[i] = CalcNextBallPos(PositionArray[i-1], LastBondAngles, c);
     }
 
 
@@ -131,8 +131,9 @@ int main()
     for(loopcount = 0; loopcount < noOfRuns; loopcount++){
         t += c.h;
 
-        for(i_dash = 1; i_dash<=N; i_dash++){
-            PositionArray[i_dash] = update(PositionArray[i_dash - 1], PositionArray[i_dash + 1], PositionArray[i_dash], c);
+        for(i_dash = 1; i_dash <= N; i_dash ++){
+
+            PositionArray[i_dash] = update(PositionArray[i_dash - 1], PositionArray[i_dash], PositionArray[i_dash + 1], c);
         }
         printFile(File_BeadPos, PositionArray);
     }
@@ -144,9 +145,9 @@ int main()
 
 //FUNCTIONS
 
-POSITION CalcNextBallPos(POSITION nMinusOnePos, POSITION nPos, ANGLES LastAngles, CONSTANTS c)
+POSITION CalcNextBallPos(POSITION nMinusOnePos, ANGLES LastAngles, CONSTANTS c)
 {
-    POSITION nPosPlusOne;
+    POSITION nPos;
     /*
      nPosPlusOne.xPos = 2*nPos.xPos - nMinusOnePos.xPos;    //Minus contribution from angles, just use rad?
      nPosPlusOne.yPos = 2*nPos.yPos - nMinusOnePos.yPos;
@@ -156,11 +157,11 @@ POSITION CalcNextBallPos(POSITION nMinusOnePos, POSITION nPos, ANGLES LastAngles
 
     ANGLES nAngles = CalcNextAngles(c);
 
-    nPosPlusOne.xPos = nPos.xPos + ( c.Q_0 * (sin(LastAngles.theta + nAngles.theta) * cos(LastAngles.phi + nAngles.phi)) );
-    nPosPlusOne.yPos = nPos.yPos + ( c.Q_0 * (sin(LastAngles.theta + nAngles.theta) * sin(LastAngles.phi + nAngles.phi)) );
-    nPosPlusOne.zPos = nPos.zPos + ( c.Q_0 * (cos(LastAngles.theta + nAngles.theta)) );
+    nPos.xPos = nMinusOnePos.xPos + ( c.Q_0 * (sin(LastAngles.theta + nAngles.theta) * cos(LastAngles.phi + nAngles.phi)) );
+    nPos.yPos = nMinusOnePos.yPos + ( c.Q_0 * (sin(LastAngles.theta + nAngles.theta) * sin(LastAngles.phi + nAngles.phi)) );
+    nPos.zPos = nMinusOnePos.zPos + ( c.Q_0 * (cos(LastAngles.theta + nAngles.theta)) );
 
-    return nPosPlusOne;
+    return nPos;
 }
 
 
@@ -248,19 +249,19 @@ void printFile(FILE *File_BeadPos, POSITION *PositionArray){
     }
 }
 
-POSITION update(POSITION nPos, POSITION nMinusOnePos, POSITION nPosPlusOne, CONSTANTS c){
+POSITION update(POSITION nMinusOnePos, POSITION nPos, POSITION nPosPlusOne, CONSTANTS c){
 
     BROWNIAN BrownianForces = Brownian(c);
     FENE FENEForces = FENEForce(nMinusOnePos, nPos, nPosPlusOne, c);
     double StokeDragForce = DragForce(c);
 
-    nPosPlusOne.xPos += c.h*( FENEForces.FENE_x1 - FENEForces.FENE_x2 + BrownianForces.BrownianForce_x);			//x INCREASES by FENE acc (a = F/m) and Brownian acc
+    nPos.xPos += c.h*( FENEForces.FENE_x1 - FENEForces.FENE_x2 + BrownianForces.BrownianForce_x);			//x INCREASES by FENE acc (a = F/m) and Brownian acc
 
-    nPosPlusOne.yPos += c.h*( FENEForces.FENE_y1 - FENEForces.FENE_x2 + BrownianForces.BrownianForce_y);
+    nPos.yPos += c.h*( FENEForces.FENE_y1 - FENEForces.FENE_x2 + BrownianForces.BrownianForce_y);
 
-    nPosPlusOne.zPos += c.h*( FENEForces.FENE_z1 - FENEForces.FENE_x2 + BrownianForces.BrownianForce_z + StokeDragForce);
+    nPos.zPos += c.h*( FENEForces.FENE_z1 - FENEForces.FENE_x2 + BrownianForces.BrownianForce_z + StokeDragForce);
 
-    return nPosPlusOne;
+    return nPos;
 }
 
 
