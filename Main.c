@@ -139,10 +139,7 @@ int main()
         
         for(i_dash = 1; i_dash <= N; i_dash ++){
             
-            PositionArrayNew[i_dash] = update(PositionArrayOld[i_dash-1], PositionArrayOld[i_dash], PositionArrayOld[i_dash+1], PositionArrayNew[i_dash], c);
-        }
-        for(i_dash = 1; i_dash <=N; i_dash++){
-            PositionArrayOld[i_dash] = PositionArrayNew[i_dash];
+            PositionArrayOld[i_dash] = update(PositionArrayOld[i_dash-1], PositionArrayOld[i_dash], PositionArrayOld[i_dash+1], PositionArrayNew[i_dash], c);
         }
         printFile(File_BeadPos, PositionArrayOld);
     }
@@ -270,8 +267,13 @@ POSITION update(POSITION nMinusOnePos, POSITION nPosOld, POSITION nPosPlusOne, P
     nPosNew.yPos = nPosOld.xPos + c.h*( FENEForces.FENE_y1 - FENEForces.FENE_x2 + BrownianForces.BrownianForce_y);
     
     nPosNew.zPos = nPosOld.xPos + c.h*( FENEForces.FENE_z1 - FENEForces.FENE_x2 + BrownianForces.BrownianForce_z + StokeDragForce);
-
-    return nPosNew;
+    
+    nPosOld.xPos = nPosNew.xPos;
+    nPosOld.yPos = nPosNew.yPos;
+    nPosOld.zPos = nPosNew.zPos;
+    
+    
+    return nPosOld;
 }
 
 
