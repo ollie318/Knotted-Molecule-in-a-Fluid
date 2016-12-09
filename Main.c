@@ -56,7 +56,7 @@ double DragForce (CONSTANTS c);
 
 BROWNIAN Brownian(CONSTANTS c);
 
-void printFile(FILE *File_BeadPos, POSITION *PositionArray);
+void printFile(FILE *File_BeadPos, POSITION *PositionArrayNew);
 
 POSITION update(POSITION nMinusOnePos, POSITION nPosOld, POSITION nPosPlusOne, POSITION nPosNew, CONSTANTS c);
 
@@ -139,9 +139,16 @@ int main()
         
         for(i_dash = 1; i_dash <= N; i_dash ++){
             
-            PositionArrayOld[i_dash] = update(PositionArrayOld[i_dash-1], PositionArrayOld[i_dash], PositionArrayOld[i_dash+1], PositionArrayNew[i_dash], c);
+            PositionArrayNew[i_dash] = update(PositionArrayOld[i_dash-1], PositionArrayOld[i_dash], PositionArrayOld[i_dash+1], PositionArrayNew[i_dash], c);
         }
-        printFile(File_BeadPos, PositionArrayOld);
+        
+        printFile(File_BeadPos, PositionArrayNew);
+        
+        int j;
+        for(j = 1; j <= N; j ++){
+            PositionArrayOld[j] = PositionArrayNew[j];
+        }
+
     }
     
     fclose(File_BeadPos);
@@ -246,12 +253,12 @@ BROWNIAN Brownian(CONSTANTS c){
     return BrownianForces;
 }
 
-void printFile(FILE *File_BeadPos, POSITION *PositionArray){
+void printFile(FILE *File_BeadPos, POSITION *PositionArrayNew){
     fprintf(File_BeadPos, "\ntimestep\n");
     int j;
     for(j = 0; j <= N; j++)
     {
-        fprintf(File_BeadPos, "%.14lf\t%.14lf\t%.14lf\n", PositionArray[j].xPos, PositionArray[j].yPos, PositionArray[j].zPos);
+        fprintf(File_BeadPos, "%.14lf\t%.14lf\t%.14lf\n", PositionArrayNew[j].xPos, PositionArrayNew[j].yPos, PositionArrayNew[j].zPos);
     }
 }
 
@@ -268,12 +275,7 @@ POSITION update(POSITION nMinusOnePos, POSITION nPosOld, POSITION nPosPlusOne, P
     
     nPosNew.zPos = nPosOld.xPos + c.h*( FENEForces.FENE_z1 - FENEForces.FENE_x2 + BrownianForces.BrownianForce_z + StokeDragForce);
     
-    nPosOld.xPos = nPosNew.xPos;
-    nPosOld.yPos = nPosNew.yPos;
-    nPosOld.zPos = nPosNew.zPos;
-    
-    
-    return nPosOld;
+    return nPosNew;
 }
 
 
