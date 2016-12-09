@@ -271,9 +271,9 @@ POSITION update(POSITION nMinusOnePos, POSITION nPosOld, POSITION nPosPlusOne, P
     
     nPosNew.xPos = nPosOld.xPos + c.h*( FENEForces.FENE_x1 - FENEForces.FENE_x2 + BrownianForces.BrownianForce_x);            //x INCREASES by FENE acc (a = F/m) and Brownian acc
     
-    nPosNew.yPos = nPosOld.xPos + c.h*( FENEForces.FENE_y1 - FENEForces.FENE_x2 + BrownianForces.BrownianForce_y);
+    nPosNew.yPos = nPosOld.yPos + c.h*( FENEForces.FENE_y1 - FENEForces.FENE_y2 + BrownianForces.BrownianForce_y);
     
-    nPosNew.zPos = nPosOld.xPos + c.h*( FENEForces.FENE_z1 - FENEForces.FENE_x2 + BrownianForces.BrownianForce_z + StokeDragForce);
+    nPosNew.zPos = nPosOld.zPos + c.h*( FENEForces.FENE_z1 - FENEForces.FENE_z2 + BrownianForces.BrownianForce_z + StokeDragForce);
     
     return nPosNew;
 }
