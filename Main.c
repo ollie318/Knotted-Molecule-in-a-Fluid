@@ -266,11 +266,11 @@ POSITION update(POSITION nMinusOnePos, POSITION nPosOld, POSITION nPosPlusOne, P
     
     double StokeDragForce = DragForce(c);
     
-    nPosOld.xPos += c.h*( FENEForces.FENE_x1 - FENEForces.FENE_x2 + BrownianForces.BrownianForce_x);            //x INCREASES by FENE acc (a = F/m) and Brownian acc
+    nPosOld.xPos = nPosNew.xPos + c.h*( FENEForces.FENE_x1 - FENEForces.FENE_x2 + BrownianForces.BrownianForce_x);            //x INCREASES by FENE acc (a = F/m) and Brownian acc
     
-    nPosOld.yPos += c.h*( FENEForces.FENE_y1 - FENEForces.FENE_x2 + BrownianForces.BrownianForce_y);
+    nPosOld.yPos = nPosNew.xPos + c.h*( FENEForces.FENE_y1 - FENEForces.FENE_x2 + BrownianForces.BrownianForce_y);
     
-    nPosOld.zPos += c.h*( FENEForces.FENE_z1 - FENEForces.FENE_x2 + BrownianForces.BrownianForce_z + StokeDragForce);
+    nPosOld.zPos = nPosNew.xPos + c.h*( FENEForces.FENE_z1 - FENEForces.FENE_x2 + BrownianForces.BrownianForce_z + StokeDragForce);
     
     return nPosOld;
 }
