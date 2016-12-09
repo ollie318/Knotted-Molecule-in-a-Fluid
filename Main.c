@@ -139,7 +139,10 @@ int main()
         
         for(i_dash = 1; i_dash <= N; i_dash ++){
             
-            PositionArrayOld[i_dash] = update(PositionArrayOld[i_dash-1], PositionArrayOld[i_dash], PositionArrayOld[i_dash+1], PositionArrayNew[i_dash], c);
+            PositionArrayNew[i_dash] = update(PositionArrayOld[i_dash-1], PositionArrayOld[i_dash], PositionArrayOld[i_dash+1], PositionArrayNew[i_dash], c);
+        }
+        for(i_dash = 1; i_dash <=N; i_dash++){
+            PositionArrayOld[i_dash] = PositionArrayNew[i_dash];
         }
         printFile(File_BeadPos, PositionArrayOld);
     }
@@ -259,20 +262,16 @@ POSITION update(POSITION nMinusOnePos, POSITION nPosOld, POSITION nPosPlusOne, P
     
     BROWNIAN BrownianForces = Brownian(c);
     FENE FENEForces = FENEForce(nMinusOnePos, nPosOld, nPosPlusOne, c);
-    
-    nPosNew.xPos = nPosOld.xPos;
-    nPosNew.yPos = nPosOld.yPos;
-    nPosNew.zPos = nPosOld.zPos;
-    
+
     double StokeDragForce = DragForce(c);
     
-    nPosOld.xPos = nPosNew.xPos + c.h*( FENEForces.FENE_x1 - FENEForces.FENE_x2 + BrownianForces.BrownianForce_x);            //x INCREASES by FENE acc (a = F/m) and Brownian acc
+    nPosNew.xPos = nPosOld.xPos + c.h*( FENEForces.FENE_x1 - FENEForces.FENE_x2 + BrownianForces.BrownianForce_x);            //x INCREASES by FENE acc (a = F/m) and Brownian acc
     
-    nPosOld.yPos = nPosNew.xPos + c.h*( FENEForces.FENE_y1 - FENEForces.FENE_x2 + BrownianForces.BrownianForce_y);
+    nPosNew.yPos = nPosOld.xPos + c.h*( FENEForces.FENE_y1 - FENEForces.FENE_x2 + BrownianForces.BrownianForce_y);
     
-    nPosOld.zPos = nPosNew.xPos + c.h*( FENEForces.FENE_z1 - FENEForces.FENE_x2 + BrownianForces.BrownianForce_z + StokeDragForce);
-    
-    return nPosOld;
+    nPosNew.zPos = nPosOld.xPos + c.h*( FENEForces.FENE_z1 - FENEForces.FENE_x2 + BrownianForces.BrownianForce_z + StokeDragForce);
+
+    return nPosNew;
 }
 
 
