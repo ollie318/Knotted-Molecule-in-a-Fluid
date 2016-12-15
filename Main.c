@@ -35,7 +35,8 @@ typedef struct
 
 typedef struct
 {
-    double BeadRadi, FluidViscos, h, T, D, FlowVel, H, m, Q_0, N_k, N_ks, b_k, L_s, eta;
+    double BeadRadi, FluidViscos, h, T, D, FlowVel, H, m, Q_0;
+    double N_k, N_ks, b_k, L_s, eta;
     int N, maxIters;
 } CONSTANTS;
 
@@ -55,21 +56,22 @@ double DragForce (CONSTANTS c);
 
 BROWNIAN Brownian(CONSTANTS c);
 
-POSITION Forces(POSITION nMinusOnePos, POSITION nPosOld, POSITION nPosPlusOne, POSITION nPosNew, CONSTANTS c);
+POSITION Forces(POSITION nMinusOnePos, POSITION nPosOld, POSITION nPosPlusOne, POSITION nPosNew, CONSTANTS c);		//Gives new pos from sum forces
 
 POSITION ForcesLast(POSITION nMinusOnePos, POSITION nPosOld, POSITION nPosPlusOne, POSITION nPosNew, CONSTANTS c);
 
-int initialise(CONSTANTS* c, POSITION** PositionArrayOld, POSITION** PositionArrayNew, POSITION** frames);
 
-int timestep(CONSTANTS c, POSITION* PositionArrayOld, POSITION* PositionArrayNew);
+int initialise(CONSTANTS* c, POSITION** PositionArrayOld, POSITION** PositionArrayNew, POSITION** frames);			//Sets constants, allocates memory for array of pointers
 
-int updateFrames(CONSTANTS c, int t, POSITION* frames, POSITION* positions);
+int timestep(CONSTANTS c, POSITION* PositionArrayOld, POSITION* PositionArrayNew);									//Loop that calls Forces for each bead, will inc collision
 
-int writeValues(CONSTANTS c, POSITION* frames);
+int updateFrames(CONSTANTS c, int CurrentFrame, POSITION* frames, POSITION* positions);								//Writes current set of positions into frames
 
-int finalise(CONSTANTS* c, POSITION** PositionArrayOld, POSITION** PositionArrayNew, POSITION** frames);
+int writeValues(CONSTANTS c, POSITION* frames);																		//Writes all bead positions to file after arrays finished
 
-int collision(CONSTANTS c, POSITION* PositionArrayNew);
+int finalise(CONSTANTS* c, POSITION** PositionArrayOld, POSITION** PositionArrayNew, POSITION** frames);			//frees memory
+
+int collision(CONSTANTS c, POSITION* PositionArrayNew);																//checks for overlap & nudges away if needed
 
 //MAIN PROG
 
@@ -99,11 +101,11 @@ int main()
   return 0;
 }
 
-int updateFrames(CONSTANTS c, int t, POSITION* frames, POSITION* positions)
+int updateFrames(CONSTANTS c, int CurrentFrame, POSITION* frames, POSITION* positions)
 {
   int i;
   for (i = 0; i < c.N; i++) {
-    frames[t*c.N + i] = positions[i];
+    frames[CurrentFrame*c.N + i] = positions[i];
   }
 
   return EXIT_SUCCESS;
@@ -113,6 +115,11 @@ int timestep(CONSTANTS c, POSITION* PositionArrayOld, POSITION* PositionArrayNew
 {
 
   int i;
+
+  PositionArrayNew[0].xPos = 0;
+  PositionArrayNew[0].yPos = 0;
+  PositionArrayNew[0].zPos = 0;
+
   for(i = 1; i < c.N-1; i ++) {
       PositionArrayNew[i] = Forces(PositionArrayOld[i-1], PositionArrayOld[i], PositionArrayOld[i+1], PositionArrayNew[i], c);
   }
@@ -253,7 +260,7 @@ BROWNIAN Brownian(CONSTANTS c){
   BROWNIAN BrownianForces;
 
   BrownianForces.BrownianForce_x = sqrt((6 * Boltzmann * c.T)/(6 * pi * c.FluidViscos * c.BeadRadi * c.h)) * GenRandDouble(-1, 1);            //random number from 1 to -1
-  BrownianForces.BrownianForce_y = sqrt((6 * Boltzmann * c.T)/(6 * pi * c.FluidViscos * c.BeadRadi * c.h)) * GenRandDouble(-1, 1);
+  BrownianForces.BrownianForce_y = sqrt((6 * Boltzmann * c.T)/(6 * pi * c.FluidViscos * c.BeadRadi * c.h)) * GenRandDouble(-1, 1);			  //will need Gaussian dist number -1 to 1
   BrownianForces.BrownianForce_z = sqrt((6 * Boltzmann * c.T)/(6 * pi * c.FluidViscos * c.BeadRadi * c.h)) * GenRandDouble(-1, 1);            //On the scale E-2
 
   return BrownianForces;
@@ -300,11 +307,11 @@ int collision(CONSTANTS c, POSITION* PositionArrayNew){
     for(j = 0; j < c.N; j++)
     {
       if(i == j)
-        separation = 0;
+        separation = 0;	//separation is a double so will not hold exactly 0
       else
         separation = sqrt(pow(PositionArrayNew[i].xPos - PositionArrayNew[j].xPos, 2) + pow(PositionArrayNew[i].yPos - PositionArrayNew[j].yPos, 2) + pow(PositionArrayNew[i].zPos - PositionArrayNew[j].zPos, 2));
 
-      if(separation <= 2*c.BeadRadi && separation != 0)
+      if(separation <= 2*c.BeadRadi && i != j)
       {
         POSITION unit;
         unit.xPos = (PositionArrayNew[i].xPos - PositionArrayNew[j].xPos) / separation;
@@ -341,12 +348,12 @@ int writeValues(CONSTANTS c, POSITION* frames)
       fprintf(File_BeadPos, "bond %d:%d\n", k, k+1);
   }
 
-  int j;
+  int j;								//j represents number of one bead
   for(j = 0; j < c.N*c.maxIters; j++)
   {
     if (j%c.N == 0)
       fprintf(File_BeadPos, "\ntimestep\n");
-    fprintf(File_BeadPos, "%.14lf\t%.14lf\t%.14lf\n", 10E6 * frames[j].xPos, 10E6 * frames[j].yPos, 10E6 * frames[j].zPos);
+    fprintf(File_BeadPos, "%.14lf\t%.14lf\t%.14lf\n", 10E6 * frames[j].xPos, 10E6 * frames[j].yPos, 10E6 * frames[j].zPos);		//Writes value in um, micrometres
   }
 
   return EXIT_SUCCESS;
