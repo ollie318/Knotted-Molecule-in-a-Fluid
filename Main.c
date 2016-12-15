@@ -266,12 +266,12 @@ POSITION Forces(POSITION nMinusOnePos, POSITION nPosOld, POSITION nPosPlusOne, P
 
   double StokeDragForce = DragForce(c);
 
-  nPosNew.xPos = nPosOld.xPos + (c.h*(  + BrownianForces.BrownianForce_x));
+  nPosNew.xPos = nPosOld.xPos + (c.h*((FENEForces.FENE_x1 - FENEForces.FENE_x2)/c.eta  + BrownianForces.BrownianForce_x));
   // printf("%.12lf\n", (c.eta * c.FlowVel));
 
-  nPosNew.yPos = nPosOld.yPos + (c.h*(  + BrownianForces.BrownianForce_y));
+  nPosNew.yPos = nPosOld.yPos + (c.h*((FENEForces.FENE_x1 - FENEForces.FENE_x2)/c.eta  + BrownianForces.BrownianForce_y));
 
-  nPosNew.zPos = nPosOld.zPos + (c.h*(  + BrownianForces.BrownianForce_z));
+  nPosNew.zPos = nPosOld.zPos + (c.h*((FENEForces.FENE_x1 - FENEForces.FENE_x2)/c.eta  + BrownianForces.BrownianForce_z));
   return nPosNew;
 }
 
@@ -282,11 +282,11 @@ POSITION ForcesLast(POSITION nMinusOnePos, POSITION nPosOld, POSITION nPosPlusOn
 
   double StokeDragForce = DragForce(c);
 
-  nPosNew.xPos = nPosOld.xPos + (c.h*( + BrownianForces.BrownianForce_x));            //x INCREASES by FENE acc (a = F/m) and Brownian acc
+  nPosNew.xPos = nPosOld.xPos + (c.h*((FENEForces.FENE_x1 - FENEForces.FENE_x2)/c.eta + BrownianForces.BrownianForce_x));            //x INCREASES by FENE acc (a = F/m) and Brownian acc
 
-  nPosNew.yPos = nPosOld.yPos + (c.h*( + BrownianForces.BrownianForce_y));
+  nPosNew.yPos = nPosOld.yPos + (c.h*((FENEForces.FENE_x1 - FENEForces.FENE_x2)/c.eta + BrownianForces.BrownianForce_y));
 
-  nPosNew.zPos = nPosOld.zPos + (c.h*( + BrownianForces.BrownianForce_z));
+  nPosNew.zPos = nPosOld.zPos + (c.h*((FENEForces.FENE_x1 - FENEForces.FENE_x2)/c.eta + BrownianForces.BrownianForce_z));
 
   return nPosNew;
 }
