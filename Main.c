@@ -48,6 +48,8 @@ double GenRandDouble(double minDoub, double maxDoub);                   //Note: 
 
 ANGLES CalcNextAngles(CONSTANTS c);
 
+int CalcKnotPos(CONSTANTS c, POSITION* PositionArrayNew);
+
 TWO_GAUSS BoxMullerTrans (CONSTANTS c, double input_1, double input_2);
 
 FENE FENEForce(POSITION nMinusOnePos, POSITION nPos, POSITION nPosPlusOne, CONSTANTS c);
@@ -125,7 +127,7 @@ int timestep(CONSTANTS c, POSITION* PositionArrayOld, POSITION* PositionArrayNew
   }
 
   PositionArrayNew[c.N-1] = ForcesLast(PositionArrayOld[c.N-2], PositionArrayOld[c.N-1], PositionArrayOld[c.N-1], PositionArrayNew[c.N-1], c);
-  // collision(c, PositionArrayNew);
+  collision(c, PositionArrayNew);
 
   return EXIT_SUCCESS;
 }
@@ -369,4 +371,37 @@ int finalise(CONSTANTS* c, POSITION** PositionArrayOld, POSITION** PositionArray
   *frames = NULL;
 
   return EXIT_SUCCESS;
+}
+
+int CalcKnotPos(CONSTANTS c, POSITION* PositionArrayNew)
+{
+	double phi_knot = 0;
+	double p, q, r;					//variables in knot eq, wiki
+	p = 4;
+	q = 3;							//For 8_19 knot
+
+	double bondlength;
+
+	phi_knot = 0;
+	r = cos(q * phi_knot) + 2;
+	PositionArrayNew[0].xPos = r * cos(p * phi_knot);
+	PositionArrayNew[0].yPos = r * sin(p * phi_knot);
+	PositionArrayNew[0].zPos = - sin(q * phi_knot);
+
+	int i;
+
+	for(i = 1; i < c.N; i++)
+	{
+	phi_knot += (2 * pi / (c.N - 1) );
+
+	r = cos(q * phi_knot) + 2;
+
+	PositionArrayNew[i].xPos = r * cos(p * phi_knot);
+	PositionArrayNew[i].yPos = r * sin(p * phi_knot);
+	PositionArrayNew[i].zPos = - sin(q * phi_knot);
+
+	bondlength = sqrt(pow(PositionArrayNew[i].xPos - PositionArrayNew[i-1].xPos, 2) + pow(PositionArrayNew[i].yPos - PositionArrayNew[i-1].yPos, 2) + pow(PositionArrayNew[i].zPos - PositionArrayNew[i-1].zPos, 2));
+	printf("bond length %lf", bondlength);
+	}
+
 }
