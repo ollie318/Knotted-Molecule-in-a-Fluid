@@ -233,6 +233,7 @@ FENE FENEForce(POSITION nMinusOnePos, POSITION nPos, POSITION nPosPlusOne, CONST
   double Q_x1 = nPosPlusOne.xPos - nPos.xPos;
 //Qs are current spring length, non-equilibrium
   FENEForces.FENE_x1 = (c.H * Q_x1) / (1 - ( pow(Q_x1, 2) / pow(c.Q_0, 2)));                             //Q_x1 is bond length for x & right, x2 left, y in y-dir etc
+  
   double Q_x2 = nPos.xPos - nMinusOnePos.xPos;
   FENEForces.FENE_x2 = (c.H * Q_x2) / (1 - ( pow(Q_x2, 2) / pow(c.Q_0, 2)));                           //Values usually between -10 & 10 -- -297 on one run?
 
@@ -278,9 +279,9 @@ POSITION Forces(POSITION nMinusOnePos, POSITION nPosOld, POSITION nPosPlusOne, P
   nPosNew.xPos = nPosOld.xPos + (c.h*((FENEForces.FENE_x1 - FENEForces.FENE_x2)/c.eta  + BrownianForces.BrownianForce_x));
   // printf("%.12lf\n", (c.eta * c.FlowVel));
 
-  nPosNew.yPos = nPosOld.yPos + (c.h*((FENEForces.FENE_x1 - FENEForces.FENE_x2)/c.eta  + BrownianForces.BrownianForce_y));
+  nPosNew.yPos = nPosOld.yPos + (c.h*((FENEForces.FENE_y1 - FENEForces.FENE_y2)/c.eta  + BrownianForces.BrownianForce_y));
 
-  nPosNew.zPos = nPosOld.zPos + (c.h*((FENEForces.FENE_x1 - FENEForces.FENE_x2)/c.eta  + BrownianForces.BrownianForce_z));
+  nPosNew.zPos = nPosOld.zPos + (c.h*((FENEForces.FENE_z1 - FENEForces.FENE_z2)/c.eta  + BrownianForces.BrownianForce_z));
   return nPosNew;
 }
 
@@ -291,11 +292,11 @@ POSITION ForcesLast(POSITION nMinusOnePos, POSITION nPosOld, POSITION nPosPlusOn
 
   double StokeDragForce = DragForce(c);
 
-  nPosNew.xPos = nPosOld.xPos + (c.h*((FENEForces.FENE_x1 - FENEForces.FENE_x2)/c.eta + BrownianForces.BrownianForce_x));            //x INCREASES by FENE acc (a = F/m) and Brownian acc
+  nPosNew.xPos = nPosOld.xPos + (c.h*((-FENEForces.FENE_x2)/c.eta + BrownianForces.BrownianForce_x));            //x INCREASES by FENE acc (a = F/m) and Brownian acc
 
-  nPosNew.yPos = nPosOld.yPos + (c.h*((FENEForces.FENE_x1 - FENEForces.FENE_x2)/c.eta + BrownianForces.BrownianForce_y));
+  nPosNew.yPos = nPosOld.yPos + (c.h*((-FENEForces.FENE_y2)/c.eta + BrownianForces.BrownianForce_y));
 
-  nPosNew.zPos = nPosOld.zPos + (c.h*((FENEForces.FENE_x1 - FENEForces.FENE_x2)/c.eta + BrownianForces.BrownianForce_z));
+  nPosNew.zPos = nPosOld.zPos + (c.h*((-FENEForces.FENE_z2)/c.eta + BrownianForces.BrownianForce_z));
 
   return nPosNew;
 }
@@ -337,15 +338,15 @@ int collision(CONSTANTS c, POSITION* PositionArrayNew){
   return EXIT_SUCCESS;
 }
 int CalcKnotPos(CONSTANTS c, POSITION* PositionArrayNew)
-
-	double phi_knot = 0;
+{
+	double phi_knot;
 	double p, q, r;					//variables in knot eq, wiki
 	p = 4;
 	q = 3;							//For 8_19 knot
 
-	double bondlength = 0;
+	double bondlength = 0.0;
 
-	phi_knot = 0;
+	phi_knot = 0.0;
 	r = cos(q * phi_knot) + 2;
 	PositionArrayNew[0].xPos = r * cos(p * phi_knot);
 	PositionArrayNew[0].yPos = r * sin(p * phi_knot);
@@ -370,9 +371,8 @@ int CalcKnotPos(CONSTANTS c, POSITION* PositionArrayNew)
 
 		}
 
-  return EXIT_SUCCESS;
-
 	}
+  return EXIT_SUCCESS;
 
 }
 
