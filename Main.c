@@ -357,7 +357,7 @@ int CalcKnotPos(CONSTANTS c, POSITION* PositionArrayNew)
 	for(i = 1; i < c.N; i++)
 	{
 
-		while(bondlength < Q_0*0.9)
+		while(bondlength < c.Q_0*0.9)
 		{
 			phi_knot += 0.01 ;
 
