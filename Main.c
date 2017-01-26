@@ -35,7 +35,7 @@ typedef struct
 
 typedef struct
 {
-    double BeadRadi, FluidViscos, h, T, D, FlowVel, H, m, Q_0;
+    double BeadRadi, FluidViscos, h, T, D, FlowVel, H, m, Q_0, MaxExtension;
     double N_k, N_ks, b_k, L_s, eta;
     int N, maxIters;
 } CONSTANTS;
@@ -150,9 +150,11 @@ int initialise(CONSTANTS* c, POSITION** PositionArrayOld, POSITION** PositionArr
   //Spring coefficient calcs
   c->N_k = 2626;
   c->b_k = 1.8E-9;
-  c->N_ks = c->N_k/c->N;
-  c->L_s = c->N_ks*c->b_k;
-  c->H = (3*Boltzmann*c->T)/(c->L_s*c->b_k);                              //Taken from Simons paper, values for polystyrene not DNA
+  c->N_ks = c->N_k / c->N;
+  c->L_s = c->N_ks * c->b_k;
+  c->H = (3*Boltzmann*c->T) / (c->L_s * c->b_k);                              //Taken from Simons paper, values for polystyrene not DNA
+
+  c->MaxExtension = 5 * c->Q_0;
 
   //c.m = 1.9927E-26;
   c->m = 0.104 / AvogadroNum;                                          //Bead mass for styrene
@@ -232,22 +234,22 @@ FENE FENEForce(POSITION nMinusOnePos, POSITION nPos, POSITION nPosPlusOne, CONST
 
   double Q_x1 = nPosPlusOne.xPos - nPos.xPos;
 //Qs are current spring length, non-equilibrium
-  FENEForces.FENE_x1 = (c.H * Q_x1) / (1 - ( pow(Q_x1, 2) / pow(c.Q_0, 2)));                             //Q_x1 is bond length for x & right, x2 left, y in y-dir etc
+  FENEForces.FENE_x1 = (c.H * Q_x1) / (1 - ( pow(Q_x1, 2) / pow(c.MaxExtension, 2)));                             //Q_x1 is bond length for x & right, x2 left, y in y-dir etc
   
   double Q_x2 = nPos.xPos - nMinusOnePos.xPos;
-  FENEForces.FENE_x2 = (c.H * Q_x2) / (1 - ( pow(Q_x2, 2) / pow(c.Q_0, 2)));                           //Values usually between -10 & 10 -- -297 on one run?
+  FENEForces.FENE_x2 = (c.H * Q_x2) / (1 - ( pow(Q_x2, 2) / pow(c.MaxExtension, 2)));                           //Values usually between -10 & 10 -- -297 on one run?
 
   double Q_y1 = nPosPlusOne.yPos - nPos.yPos;
-  FENEForces.FENE_y1 = (c.H * Q_y1) / (1 - (pow(Q_y1, 2) / pow (c.Q_0, 2)));
+  FENEForces.FENE_y1 = (c.H * Q_y1) / (1 - (pow(Q_y1, 2) / pow (c.MaxExtension, 2)));
 
   double Q_y2 = nPos.yPos - nMinusOnePos.yPos;
-  FENEForces.FENE_y2 = (c.H * Q_y2) / (1 - (pow(Q_y2, 2) / pow (c.Q_0, 2)));
+  FENEForces.FENE_y2 = (c.H * Q_y2) / (1 - (pow(Q_y2, 2) / pow (c.MaxExtension, 2)));
 
   double Q_z1 = nPosPlusOne.zPos - nPos.zPos;
-  FENEForces.FENE_z1 = (c.H * Q_z1) / (1 - (pow(Q_z1, 2) / pow (c.Q_0, 2)));
+  FENEForces.FENE_z1 = (c.H * Q_z1) / (1 - (pow(Q_z1, 2) / pow (c.MaxExtension, 2)));
 
   double Q_z2 = nPos.zPos - nMinusOnePos.zPos;
-  FENEForces.FENE_z2 = (c.H * Q_z2) / (1 - (pow(Q_z2, 2) / pow (c.Q_0, 2)));
+  FENEForces.FENE_z2 = (c.H * Q_z2) / (1 - (pow(Q_z2, 2) / pow (c.MaxExtension, 2)));
 
   return FENEForces;
 }
