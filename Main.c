@@ -36,7 +36,7 @@ typedef struct
 typedef struct
 {
     double BeadRadi, FluidViscos, h, T, D, FlowVel, H, m, Q_0;
-    double N_k, N_ks, b_k, L_s, eta;
+    double N_k, N_ks, b_k, L_s, eta, MaxExtension;
     int N, maxIters;
 } CONSTANTS;
 
@@ -48,7 +48,7 @@ double GenRandDouble(double minDoub, double maxDoub);                   //Note: 
 
 ANGLES CalcNextAngles(CONSTANTS c);
 
-int CalcKnotPos(CONSTANTS c, POSITION* PositionArrayNew, POSITION nMinusOnePos);
+int CalcKnotPos(CONSTANTS c, POSITION* PositionArrayNew, POSITION nMinusOnePos, int i);
 
 TWO_GAUSS BoxMullerTrans (CONSTANTS c, double input_1, double input_2);
 
@@ -79,340 +79,333 @@ int collision(CONSTANTS c, POSITION* PositionArrayNew);																//checks 
 
 int main()
 {
-  CONSTANTS c;
-  POSITION* PositionArrayOld;
-  POSITION* PositionArrayNew;
-  POSITION* frames;
+    CONSTANTS c;
+    POSITION* PositionArrayOld;
+    POSITION* PositionArrayNew;
+    POSITION* frames;
 
-  initialise(&c, &PositionArrayOld, &PositionArrayNew, &frames);
+    initialise(&c, &PositionArrayOld, &PositionArrayNew, &frames);
 
-  int loopcount;
-  for(loopcount = 0; loopcount < c.maxIters; loopcount++){
+    int loopcount;
+    for(loopcount = 0; loopcount < c.maxIters; loopcount++){
 
-      timestep(c, PositionArrayOld, PositionArrayNew);
-      updateFrames(c, loopcount, frames, PositionArrayNew);
-      int j;
-      for(j = 1; j < c.N; j ++){
-          PositionArrayOld[j] = PositionArrayNew[j];
-      }
-  }
+        updateFrames(c, loopcount, frames, PositionArrayNew);
+        timestep(c, PositionArrayOld, PositionArrayNew);
+        int j;
+        for(j = 1; j < c.N; j ++){
+            PositionArrayOld[j] = PositionArrayNew[j];
+        }
+    }
 
-  writeValues(c, frames);
-  finalise(&c, &PositionArrayOld, &PositionArrayNew, &frames);
+    writeValues(c, frames);
+    finalise(&c, &PositionArrayOld, &PositionArrayNew, &frames);
 
-  return 0;
+    return 0;
 }
 
 int updateFrames(CONSTANTS c, int CurrentFrame, POSITION* frames, POSITION* positions)
 {
-  int i;
-  for (i = 0; i < c.N; i++) {
-    frames[CurrentFrame*c.N + i] = positions[i];
-  }
+    int i;
+    for (i = 0; i < c.N; i++) {
+        frames[CurrentFrame*c.N + i] = positions[i];
+    }
 
-  return EXIT_SUCCESS;
+    return EXIT_SUCCESS;
 }
 
 int timestep(CONSTANTS c, POSITION* PositionArrayOld, POSITION* PositionArrayNew)
 {
 
-  int i;
+    int i;
 
-  PositionArrayNew[0].xPos = 0;
-  PositionArrayNew[0].yPos = 0;
-  PositionArrayNew[0].zPos = 0;
+    PositionArrayNew[0].xPos = 0;
+    PositionArrayNew[0].yPos = 0;
+    PositionArrayNew[0].zPos = 0;
 
-  for(i = 1; i < c.N-1; i ++) {
-      PositionArrayNew[i] = Forces(PositionArrayOld[i-1], PositionArrayOld[i], PositionArrayOld[i+1], PositionArrayNew[i], c);
-  }
+    for(i = 1; i < c.N-1; i ++) {
+        PositionArrayNew[i] = Forces(PositionArrayOld[i-1], PositionArrayOld[i], PositionArrayOld[i+1], PositionArrayNew[i], c);
+    }
 
-  PositionArrayNew[c.N-1] = ForcesLast(PositionArrayOld[c.N-2], PositionArrayOld[c.N-1], PositionArrayOld[c.N-1], PositionArrayNew[c.N-1], c);
-  // collision(c, PositionArrayNew);
+    PositionArrayNew[c.N-1] = ForcesLast(PositionArrayOld[c.N-2], PositionArrayOld[c.N-1], PositionArrayOld[c.N-1], PositionArrayNew[c.N-1], c);
+    // collision(c, PositionArrayNew);
 
-  return EXIT_SUCCESS;
+    return EXIT_SUCCESS;
 }
 
 int initialise(CONSTANTS* c, POSITION** PositionArrayOld, POSITION** PositionArrayNew, POSITION** frames)
 {
-  // array constants
-  c->N = 20;
-  c->maxIters = 10000;
+    // array constants
+    c->N = 45;
+    c->maxIters = 10000;
 
-  c->BeadRadi = 100E-9;                                                //diameter of polystyrene
-  c->FluidViscos = 30;                                             //Fluid viscosity
-  c->FlowVel = 13.0;                                                    //Fluid velocity, NOT relative velocity as needed for Stokes Law
-  c->h = 0.001;                                                          //Time step
-  c->T = 298;                                                          //Temperature in Kelvin
-  c->D = (Boltzmann * c->T) / (6 * pi * c->FluidViscos * c->BeadRadi);    //Diffusion coefficient
-  c->eta = 6*pi*c->FluidViscos*c->BeadRadi;
+    c->BeadRadi = 100E-9;                                                //diameter of polystyrene
+    c->FluidViscos = 2;                                             //Fluid viscosity
+    c->FlowVel = 13.0;                                                    //Fluid velocity, NOT relative velocity as needed for Stokes Law
+    c->h = 0.001;                                                          //Time step
+    c->T = 298;                                                          //Temperature in Kelvin
+    c->D = (Boltzmann * c->T) / (6 * pi * c->FluidViscos * c->BeadRadi);    //Diffusion coefficient
+    c->eta = 6*pi*c->FluidViscos*c->BeadRadi;
 
-  //Spring coefficient calcs
-  c->N_k = 2626;
-  c->b_k = 1.8E-9;
-  c->N_ks = c->N_k / c->N;
-  c->L_s = c->N_ks * c->b_k;
-  c->H = (3*Boltzmann*c->T) / (c->L_s * c->b_k);                              //Taken from Simons paper, values for polystyrene not DNA
+    //Spring coefficient calcs
+    c->N_k = 2626;
+    c->b_k = 1.8E-9;
+    c->N_ks = c->N_k / c->N;
+    c->L_s = c->N_ks * c->b_k;
+    c->H = (3*Boltzmann*c->T) / (c->L_s * c->b_k);                              //Taken from Simons paper, values for polystyrene not DNA
 
-  //c.m = 1.9927E-26;
-  c->m = 0.104 / AvogadroNum;                                          //Bead mass for styrene
-  c->Q_0 = c->N_ks * c->b_k;
+    //c.m = 1.9927E-26;
+    c->m = 0.104 / AvogadroNum;                                          //Bead mass for styrene
+    c->Q_0 = c->N_ks * c->b_k;
 
-  c->MaxExtension = 5 * c->Q_0;
+    c->MaxExtension = 5 * c->Q_0;
 
 
-  (*PositionArrayOld) = (POSITION*) malloc(sizeof(POSITION) * c->N);
-  (*PositionArrayNew) = (POSITION*) malloc(sizeof(POSITION) * c->N);
-  (*frames) = (POSITION*) malloc(sizeof(POSITION) * c->N * c->maxIters);
+    (*PositionArrayOld) = (POSITION*) malloc(sizeof(POSITION) * c->N);
+    (*PositionArrayNew) = (POSITION*) malloc(sizeof(POSITION) * c->N);
+    (*frames) = (POSITION*) malloc(sizeof(POSITION) * c->N * c->maxIters);
 
-  (*PositionArrayOld)[0].xPos = 0;                                         //Initialising pos1 to 0,0,0
-  (*PositionArrayOld)[0].yPos = 0;
-  (*PositionArrayOld)[0].zPos = 0;
+    (*PositionArrayOld)[0].xPos = 0;                                         //Initialising pos1 to 0,0,0
+    (*PositionArrayOld)[0].yPos = 0;
+    (*PositionArrayOld)[0].zPos = 0;
 
-  (*PositionArrayOld)[1].xPos = (*PositionArrayOld)[0].xPos + (0.8 * c->Q_0);
-  (*PositionArrayOld)[1].yPos = (*PositionArrayOld)[0].yPos;
-  (*PositionArrayOld)[1].zPos = (*PositionArrayOld)[0].zPos;
+    (*PositionArrayOld)[1].xPos = (*PositionArrayOld)[0].xPos + (0.8 * c->Q_0);
+    (*PositionArrayOld)[1].yPos = (*PositionArrayOld)[0].yPos;
+    (*PositionArrayOld)[1].zPos = (*PositionArrayOld)[0].zPos;
 
-  ANGLES LastBondAngles;
-  LastBondAngles.phi = 0;
-  LastBondAngles.theta = pi/2;
+    ANGLES LastBondAngles;
+    LastBondAngles.phi = 0;
+    LastBondAngles.theta = pi/2;
 
-  int i;
-  for (i = 2; i < c->N; i++){
-      CalcKnotPos(*c, &((*PositionArrayOld)[i]), (*PositionArrayOld)[i-1]);
-  }
+    int i;
+    for (i = 2; i < c->N; i++){
+        // CalcKnotPos(*c, &((*PositionArrayOld)[i]), (*PositionArrayOld)[i-1], i);
+        CalcNextBallPos((*PositionArrayOld)[i-1], &((*PositionArrayOld)[i]), LastBondAngles, *c);
+    }
 
-  return 0;
+    return 0;
 }
 
 int CalcNextBallPos(POSITION nMinusOnePos, POSITION* nPos, ANGLES LastAngles, CONSTANTS c)
 {
-  ANGLES nAngles = CalcNextAngles(c);
+    ANGLES nAngles = CalcNextAngles(c);
 
-  nPos -> xPos = nMinusOnePos.xPos + ( c.Q_0 * (sin(LastAngles.theta + nAngles.theta) * cos(LastAngles.phi + nAngles.phi)) );
-  nPos -> yPos = nMinusOnePos.yPos + ( c.Q_0 * (sin(LastAngles.theta + nAngles.theta) * sin(LastAngles.phi + nAngles.phi)) );
-  nPos -> zPos = nMinusOnePos.zPos + ( c.Q_0 * (cos(LastAngles.theta + nAngles.theta)) );
+    nPos -> xPos = nMinusOnePos.xPos + ( c.Q_0 * (sin(LastAngles.theta + nAngles.theta) * cos(LastAngles.phi + nAngles.phi)) );
+    nPos -> yPos = nMinusOnePos.yPos + ( c.Q_0 * (sin(LastAngles.theta + nAngles.theta) * sin(LastAngles.phi + nAngles.phi)) );
+    nPos -> zPos = nMinusOnePos.zPos + ( c.Q_0 * (cos(LastAngles.theta + nAngles.theta)) );
 
-  return EXIT_SUCCESS;
+    return EXIT_SUCCESS;
 }
 
 ANGLES CalcNextAngles(CONSTANTS c)
 {
-  ANGLES NewAngles;
-  NewAngles.theta = GenRandDouble(-pi/4, pi/4);
-  NewAngles.phi = GenRandDouble(-pi, pi);
+    ANGLES NewAngles;
+    NewAngles.theta = GenRandDouble(-pi/4, pi/4);
+    NewAngles.phi = GenRandDouble(-pi, pi);
 
-  return NewAngles;
+    return NewAngles;
 }
 
 double GenRandDouble(double minDoub, double maxDoub)
 {
-  double randDoub;
-  double fraction = rand() / (RAND_MAX + 1.0);
-  randDoub = minDoub + (maxDoub - minDoub) * fraction;
-  return randDoub;
+    double randDoub;
+    double fraction = rand() / (RAND_MAX + 1.0);
+    randDoub = minDoub + (maxDoub - minDoub) * fraction;
+    return randDoub;
 }
 
 
 TWO_GAUSS BoxMullerTrans (CONSTANTS c, double input_1, double input_2)
 {
-  TWO_GAUSS OutputGauss;
+    TWO_GAUSS OutputGauss;
 
-  OutputGauss.Gauss_1 = sqrt(-2 * log(input_1) ) * cos(2 * pi * input_2);          //If using a standard Gaussian
-  OutputGauss.Gauss_1 = OutputGauss.Gauss_1 * sqrt(2 * c.D * c.h);                 //Multiply by standard deviation and add mean (0) for our Gaussian
+    OutputGauss.Gauss_1 = sqrt(-2 * log(input_1) ) * cos(2 * pi * input_2);          //If using a standard Gaussian
+    OutputGauss.Gauss_1 = OutputGauss.Gauss_1 * sqrt(2 * c.D * c.h);                 //Multiply by standard deviation and add mean (0) for our Gaussian
 
-  OutputGauss.Gauss_2 =sqrt(-2 * log(input_1) ) * sin(2 * pi * input_2);
-  OutputGauss.Gauss_2 = OutputGauss.Gauss_2 * sqrt(2 * c.D * c.h);
+    OutputGauss.Gauss_2 =sqrt(-2 * log(input_1) ) * sin(2 * pi * input_2);
+    OutputGauss.Gauss_2 = OutputGauss.Gauss_2 * sqrt(2 * c.D * c.h);
 
-  return OutputGauss;
+    return OutputGauss;
 }
 
 
 FENE FENEForce(POSITION nMinusOnePos, POSITION nPos, POSITION nPosPlusOne, CONSTANTS c)
 {
-  FENE FENEForces;
+    FENE FENEForces;
 
-  double Q_x1 = nPosPlusOne.xPos - nPos.xPos;
-//Qs are current spring length, non-equilibrium
-  FENEForces.FENE_x1 = (c.H * Q_x1) / (1 - ( pow(Q_x1, 2) / pow(c.MaxExtension, 2)));                             //Q_x1 is bond length for x & right, x2 left, y in y-dir etc
-  double Q_x2 = nPos.xPos - nMinusOnePos.xPos;
-  FENEForces.FENE_x2 = (c.H * Q_x2) / (1 - ( pow(Q_x2, 2) / pow(c.MaxExtension, 2)));                           //Values usually between -10 & 10 -- -297 on one run?
+    double Q_x1 = nPosPlusOne.xPos - nPos.xPos;
+    //Qs are current spring length, non-equilibrium
+    FENEForces.FENE_x1 = (c.H * Q_x1) / (1 - ( pow(Q_x1, 2) / pow(c.MaxExtension, 2)));                             //Q_x1 is bond length for x & right, x2 left, y in y-dir etc
+    double Q_x2 = nPos.xPos - nMinusOnePos.xPos;
+    FENEForces.FENE_x2 = (c.H * Q_x2) / (1 - ( pow(Q_x2, 2) / pow(c.MaxExtension, 2)));                           //Values usually between -10 & 10 -- -297 on one run?
 
-  double Q_y1 = nPosPlusOne.yPos - nPos.yPos;
-  FENEForces.FENE_y1 = (c.H * Q_y1) / (1 - (pow(Q_y1, 2) / pow (c.MaxExtension, 2)));
+    double Q_y1 = nPosPlusOne.yPos - nPos.yPos;
+    FENEForces.FENE_y1 = (c.H * Q_y1) / (1 - (pow(Q_y1, 2) / pow (c.MaxExtension, 2)));
 
-  double Q_y2 = nPos.yPos - nMinusOnePos.yPos;
-  FENEForces.FENE_y2 = (c.H * Q_y2) / (1 - (pow(Q_y2, 2) / pow (c.MaxExtension, 2)));
+    double Q_y2 = nPos.yPos - nMinusOnePos.yPos;
+    FENEForces.FENE_y2 = (c.H * Q_y2) / (1 - (pow(Q_y2, 2) / pow (c.MaxExtension, 2)));
 
-  double Q_z1 = nPosPlusOne.zPos - nPos.zPos;
-  FENEForces.FENE_z1 = (c.H * Q_z1) / (1 - (pow(Q_z1, 2) / pow (c.MaxExtension, 2)));
+    double Q_z1 = nPosPlusOne.zPos - nPos.zPos;
+    FENEForces.FENE_z1 = (c.H * Q_z1) / (1 - (pow(Q_z1, 2) / pow (c.MaxExtension, 2)));
 
-  double Q_z2 = nPos.zPos - nMinusOnePos.zPos;
-  FENEForces.FENE_z2 = (c.H * Q_z2) / (1 - (pow(Q_z2, 2) / pow (c.MaxExtension, 2)));
+    double Q_z2 = nPos.zPos - nMinusOnePos.zPos;
+    FENEForces.FENE_z2 = (c.H * Q_z2) / (1 - (pow(Q_z2, 2) / pow (c.MaxExtension, 2)));
 
-  return FENEForces;
+    return FENEForces;
 }
 
 double DragForce (CONSTANTS c)
 {
-  double StokeForce;
+    double StokeForce;
     StokeForce = - 6 * pi * c.FluidViscos * c.FlowVel * c.BeadRadi;
-  return StokeForce;
+    return StokeForce;
 }
 
 BROWNIAN Brownian(CONSTANTS c){
-  BROWNIAN BrownianForces;
+    BROWNIAN BrownianForces;
 
-  BrownianForces.BrownianForce_x = sqrt((6 * Boltzmann * c.T)/(6 * pi * c.FluidViscos * c.BeadRadi * c.h)) * GenRandDouble(-1, 1);            //random number from 1 to -1
-  BrownianForces.BrownianForce_y = sqrt((6 * Boltzmann * c.T)/(6 * pi * c.FluidViscos * c.BeadRadi * c.h)) * GenRandDouble(-1, 1);			  //will need Gaussian dist number -1 to 1
-  BrownianForces.BrownianForce_z = sqrt((6 * Boltzmann * c.T)/(6 * pi * c.FluidViscos * c.BeadRadi * c.h)) * GenRandDouble(-1, 1);            //On the scale E-2
+    BrownianForces.BrownianForce_x = sqrt((6 * Boltzmann * c.T)/(6 * pi * c.FluidViscos * c.BeadRadi * c.h)) * GenRandDouble(-1, 1);            //random number from 1 to -1
+    BrownianForces.BrownianForce_y = sqrt((6 * Boltzmann * c.T)/(6 * pi * c.FluidViscos * c.BeadRadi * c.h)) * GenRandDouble(-1, 1);			  //will need Gaussian dist number -1 to 1
+    BrownianForces.BrownianForce_z = sqrt((6 * Boltzmann * c.T)/(6 * pi * c.FluidViscos * c.BeadRadi * c.h)) * GenRandDouble(-1, 1);            //On the scale E-2
 
-  return BrownianForces;
+    return BrownianForces;
 }
 
 POSITION Forces(POSITION nMinusOnePos, POSITION nPosOld, POSITION nPosPlusOne, POSITION nPosNew, CONSTANTS c){
 
-  BROWNIAN BrownianForces = Brownian(c);
-  FENE FENEForces = FENEForce(nMinusOnePos, nPosOld, nPosPlusOne, c);
+    BROWNIAN BrownianForces = Brownian(c);
+    FENE FENEForces = FENEForce(nMinusOnePos, nPosOld, nPosPlusOne, c);
 
-  double StokeDragForce = DragForce(c);
+    double StokeDragForce = DragForce(c);
 
-  nPosNew.xPos = nPosOld.xPos + (c.h*((FENEForces.FENE_x1 - FENEForces.FENE_x2)/c.eta  + BrownianForces.BrownianForce_x));
-  // printf("%.12lf\n", (c.eta * c.FlowVel));
+    nPosNew.xPos = nPosOld.xPos + (c.h*((FENEForces.FENE_x1 - FENEForces.FENE_x2)/c.eta  + BrownianForces.BrownianForce_x/c.eta));
+    // printf("%.12lf\n", (c.eta * c.FlowVel));
 
-  nPosNew.yPos = nPosOld.yPos + (c.h*((FENEForces.FENE_x1 - FENEForces.FENE_x2)/c.eta  + BrownianForces.BrownianForce_y));
+    nPosNew.yPos = nPosOld.yPos + (c.h*((FENEForces.FENE_x1 - FENEForces.FENE_x2)/c.eta  + BrownianForces.BrownianForce_y/c.eta));
 
-  nPosNew.zPos = nPosOld.zPos + (c.h*((FENEForces.FENE_x1 - FENEForces.FENE_x2)/c.eta  + BrownianForces.BrownianForce_z));
-  return nPosNew;
+    nPosNew.zPos = nPosOld.zPos + (c.h*((FENEForces.FENE_x1 - FENEForces.FENE_x2)/c.eta  + BrownianForces.BrownianForce_z/c.eta));
+    return nPosNew;
 }
 
 POSITION ForcesLast(POSITION nMinusOnePos, POSITION nPosOld, POSITION nPosPlusOne, POSITION nPosNew, CONSTANTS c){
 
-  BROWNIAN BrownianForces = Brownian(c);
-  FENE FENEForces = FENEForce(nMinusOnePos, nPosOld, nPosPlusOne, c);
+    BROWNIAN BrownianForces = Brownian(c);
+    FENE FENEForces = FENEForce(nMinusOnePos, nPosOld, nPosPlusOne, c);
 
-  double StokeDragForce = DragForce(c);
+    double StokeDragForce = DragForce(c);
 
-  nPosNew.xPos = nPosOld.xPos + (c.h*((FENEForces.FENE_x1 - FENEForces.FENE_x2)/c.eta + BrownianForces.BrownianForce_x));            //x INCREASES by FENE acc (a = F/m) and Brownian acc
+    nPosNew.xPos = nPosOld.xPos + (c.h*((FENEForces.FENE_x1 - FENEForces.FENE_x2)/c.eta + BrownianForces.BrownianForce_x/c.eta));            //x INCREASES by FENE acc (a = F/m) and Brownian acc
 
-  nPosNew.yPos = nPosOld.yPos + (c.h*((FENEForces.FENE_x1 - FENEForces.FENE_x2)/c.eta + BrownianForces.BrownianForce_y));
+    nPosNew.yPos = nPosOld.yPos + (c.h*((FENEForces.FENE_x1 - FENEForces.FENE_x2)/c.eta + BrownianForces.BrownianForce_y/c.eta));
 
-  nPosNew.zPos = nPosOld.zPos + (c.h*((FENEForces.FENE_x1 - FENEForces.FENE_x2)/c.eta + BrownianForces.BrownianForce_z));
+    nPosNew.zPos = nPosOld.zPos + (c.h*((FENEForces.FENE_x1 - FENEForces.FENE_x2)/c.eta + BrownianForces.BrownianForce_z/c.eta));
 
-  return nPosNew;
+    return nPosNew;
 }
 
 int collision(CONSTANTS c, POSITION* PositionArrayNew){
-  double separation;
+    double separation;
 
-  int i, j;
-  for(i = 0; i < c.N; i++)
-  {
-    for(j = 0; j < c.N; j++)
+    int i, j;
+    for(i = 0; i < c.N; i++)
     {
-      if(i == j)
-        separation = 0;	//separation is a double so will not hold exactly 0
-      else
-        separation = sqrt(pow(PositionArrayNew[i].xPos - PositionArrayNew[j].xPos, 2) + pow(PositionArrayNew[i].yPos - PositionArrayNew[j].yPos, 2) + pow(PositionArrayNew[i].zPos - PositionArrayNew[j].zPos, 2));
+        for(j = 0; j < c.N; j++)
+        {
+            separation = sqrt(pow(PositionArrayNew[i].xPos - PositionArrayNew[j].xPos, 2) + pow(PositionArrayNew[i].yPos - PositionArrayNew[j].yPos, 2) + pow(PositionArrayNew[i].zPos - PositionArrayNew[j].zPos, 2));
 
-      if(separation <= 2*c.BeadRadi && i != j)
-      {
-        POSITION unit;
-        unit.xPos = (PositionArrayNew[i].xPos - PositionArrayNew[j].xPos) / separation;
-        unit.yPos = (PositionArrayNew[i].yPos - PositionArrayNew[j].yPos) / separation;
-        unit.zPos = (PositionArrayNew[i].zPos - PositionArrayNew[j].zPos) / separation;
+            if(separation <= 2*c.BeadRadi && i != j)
+            {
+                POSITION unit;
+                unit.xPos = (PositionArrayNew[i].xPos - PositionArrayNew[j].xPos) / separation;
+                unit.yPos = (PositionArrayNew[i].yPos - PositionArrayNew[j].yPos) / separation;
+                unit.zPos = (PositionArrayNew[i].zPos - PositionArrayNew[j].zPos) / separation;
 
-        double nudge = (separation - 2*c.BeadRadi) / 2.0;
+                double nudge = (separation - 2*c.BeadRadi) / 2.0;
 
-        PositionArrayNew[i].xPos += nudge * unit.xPos;
-        PositionArrayNew[i].yPos += nudge * unit.yPos;
-        PositionArrayNew[i].zPos += nudge * unit.zPos;
+                PositionArrayNew[i].xPos += nudge * unit.xPos;
+                PositionArrayNew[i].yPos += nudge * unit.yPos;
+                PositionArrayNew[i].zPos += nudge * unit.zPos;
 
-        PositionArrayNew[j].xPos -= nudge * unit.xPos;
-        PositionArrayNew[j].yPos -= nudge * unit.yPos;
-        PositionArrayNew[j].zPos -= nudge * unit.zPos;
+                PositionArrayNew[j].xPos -= nudge * unit.xPos;
+                PositionArrayNew[j].yPos -= nudge * unit.yPos;
+                PositionArrayNew[j].zPos -= nudge * unit.zPos;
 
-      }
+            }
+        }
     }
-  }
 
-  return EXIT_SUCCESS;
+    return EXIT_SUCCESS;
 }
 
-int CalcKnotPos(CONSTANTS c, POSITION* PositionArrayNew, POSITION nMinusOnePos){
+int CalcKnotPos(CONSTANTS c, POSITION* PositionArrayNew, POSITION nMinusOnePos, int i){
 
-	double phi_knot = 0;
-	double p, q, r, TestxPos = 0.0, TestyPos = 0.0, TestzPos = 0.0 ;					//variables in knot eq, wiki
-	p = 4.0;
-	q = 3.0;							//For 8_19 knot
+    double phi_knot = 0;
+    double p, q, r, TestxPos = 0.0, TestyPos = 0.0, TestzPos = 0.0 ;					//variables in knot eq, wiki
+    p = 4.0;
+    q = 3.0;							//For 8_19 knot
 
-	double bondlength = 0.0;
+    double bondlength = 0.0;
 
-	phi_knot = 0;
+    phi_knot = 0;
 
-	int i;
-
-	for(i = 1; i < c.N; i++)
-	{
-    if((i > 0 && i < 15) || (i > 30 && i < c.N )){
-      PositionArrayNew[i].xPos = nMinusOnePos.xPos + (c.Q_0 * 0.8);
-      PositionArrayNew[i].yPos = nMinusOnePos.yPos;
-      PositionArrayNew[i].zPos = nMinusOnePos.zPos;
+    if((i > 1 && i < 15) || (i > 30 && i < c.N )){
+        PositionArrayNew[i].xPos = nMinusOnePos.xPos + (c.Q_0 * 0.8);
+        PositionArrayNew[i].yPos = nMinusOnePos.yPos;
+        PositionArrayNew[i].zPos = nMinusOnePos.zPos;
     }
 
     else{
-  		while(bondlength < c.Q_0*0.9){
+        while(bondlength < c.Q_0*0.9){
 
-  			phi_knot += 0.001 ;
-        r = cos(q * phi_knot) + 2;
+            phi_knot += 0.01 ;
+            r = cos(q * phi_knot) + 2;
 
-  			TestxPos = r * cos(p * phi_knot);
-  			TestyPos = r * sin(p * phi_knot);
-  			TestzPos = - sin(q * phi_knot);
+            TestxPos = (r * cos(p * phi_knot))/3000000;
+            TestyPos = (r * sin(p * phi_knot))/30000000;
+            TestzPos = (- sin(q * phi_knot))/30000000;
 
-  			bondlength = sqrt(pow(PositionArrayNew[i].xPos - PositionArrayNew[i-1].xPos, 2) + pow(PositionArrayNew[i].yPos - PositionArrayNew[i-1].yPos, 2) + pow(PositionArrayNew[i].zPos - PositionArrayNew[i-1].zPos, 2));
+            bondlength = sqrt(pow(TestxPos - PositionArrayNew[i-1].xPos, 2) + pow(TestyPos - PositionArrayNew[i-1].yPos, 2) + pow(TestzPos - PositionArrayNew[i-1].zPos, 2));
 
-		    }
+        }
 
         PositionArrayNew[i].xPos = (15 * c.Q_0) + TestxPos;
-  			PositionArrayNew[i].yPos = TestyPos;
-  			PositionArrayNew[i].zPos = TestzPos;
+        PositionArrayNew[i].yPos = TestyPos;
+        PositionArrayNew[i].zPos = TestzPos;
     }
-  }
-  return EXIT_SUCCESS;
+    return EXIT_SUCCESS;
 }
 
 int writeValues(CONSTANTS c, POSITION* frames)
 {
 
-  FILE *File_BeadPos;
-  File_BeadPos = fopen("File_BeadPos.vtf", "w");
+    FILE *File_BeadPos;
+    File_BeadPos = fopen("File_BeadPos.vtf", "w");
 
-  fprintf(File_BeadPos, "atom 0:%d\tradius 1.0\tname S\n" , c.N);
+    fprintf(File_BeadPos, "atom 0:%d\tradius 1.0\tname S\n" , c.N);
 
-  int k;
-  for(k = 0; k < c.N-1; k++){
-      fprintf(File_BeadPos, "bond %d:%d\n", k, k+1);
-  }
+    int k;
+    for(k = 0; k < c.N-1; k++){
+        fprintf(File_BeadPos, "bond %d:%d\n", k, k+1);
+    }
 
-  int j;								//j represents number of one bead
-  for(j = 0; j < c.N*c.maxIters; j++)
-  {
-    if (j%c.N == 0)
-      fprintf(File_BeadPos, "\ntimestep\n");
-    fprintf(File_BeadPos, "%.14lf\t%.14lf\t%.14lf\n", 10E6 * frames[j].xPos, 10E6 * frames[j].yPos, 10E6 * frames[j].zPos);		//Writes value in um, micrometres
-  }
+    int j;								//j represents number of one bead
+    for(j = 0; j < c.N*c.maxIters; j++)
+    {
+        if (j%c.N == 0)
+            fprintf(File_BeadPos, "\ntimestep\n");
+        fprintf(File_BeadPos, "%.14lf\t%.14lf\t%.14lf\n", 10E6 * frames[j].xPos, 10E6 * frames[j].yPos, 10E6 * frames[j].zPos);		//Writes value in um, micrometres
+    }
 
-  return EXIT_SUCCESS;
+    return EXIT_SUCCESS;
 }
 
 int finalise(CONSTANTS* c, POSITION** PositionArrayOld, POSITION** PositionArrayNew, POSITION** frames)
 {
-  free(*PositionArrayOld);
-  *PositionArrayOld = NULL;
-  free(*PositionArrayOld);
-  *PositionArrayOld = NULL;
-  free(*frames);
-  *frames = NULL;
+    free(*PositionArrayOld);
+    *PositionArrayOld = NULL;
+    free(*PositionArrayOld);
+    *PositionArrayOld = NULL;
+    free(*frames);
+    *frames = NULL;
 
-  return EXIT_SUCCESS;
+    return EXIT_SUCCESS;
 }
