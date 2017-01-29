@@ -35,7 +35,7 @@ typedef struct
 
 typedef struct
 {
-    double BeadRadi, FluidViscos, h, T, D, FlowVel, H, m, Q_0, MaxExtension;
+    double BeadRadi, FluidViscos, h, T, D, FlowVel, H, m, Q_0;
     double N_k, N_ks, b_k, L_s, eta;
     int N, maxIters;
 } CONSTANTS;
@@ -48,7 +48,7 @@ double GenRandDouble(double minDoub, double maxDoub);                   //Note: 
 
 ANGLES CalcNextAngles(CONSTANTS c);
 
-int CalcKnotPos(CONSTANTS c, POSITION* PositionArrayNew);
+int CalcKnotPos(CONSTANTS c, POSITION* PositionArrayNew, POSITION nMinusOnePos);
 
 TWO_GAUSS BoxMullerTrans (CONSTANTS c, double input_1, double input_2);
 
@@ -127,7 +127,7 @@ int timestep(CONSTANTS c, POSITION* PositionArrayOld, POSITION* PositionArrayNew
   }
 
   PositionArrayNew[c.N-1] = ForcesLast(PositionArrayOld[c.N-2], PositionArrayOld[c.N-1], PositionArrayOld[c.N-1], PositionArrayNew[c.N-1], c);
-  collision(c, PositionArrayNew);
+  // collision(c, PositionArrayNew);
 
   return EXIT_SUCCESS;
 }
@@ -142,7 +142,7 @@ int initialise(CONSTANTS* c, POSITION** PositionArrayOld, POSITION** PositionArr
   c->BeadRadi = 100E-9;                                                //diameter of polystyrene
   c->FluidViscos = 30;                                             //Fluid viscosity
   c->FlowVel = 13.0;                                                    //Fluid velocity, NOT relative velocity as needed for Stokes Law
-  c->h = 0.001;                                                          //Time step?
+  c->h = 0.001;                                                          //Time step
   c->T = 298;                                                          //Temperature in Kelvin
   c->D = (Boltzmann * c->T) / (6 * pi * c->FluidViscos * c->BeadRadi);    //Diffusion coefficient
   c->eta = 6*pi*c->FluidViscos*c->BeadRadi;
@@ -150,11 +150,9 @@ int initialise(CONSTANTS* c, POSITION** PositionArrayOld, POSITION** PositionArr
   //Spring coefficient calcs
   c->N_k = 2626;
   c->b_k = 1.8E-9;
-  c->N_ks = c->N_k / c->N;
-  c->L_s = c->N_ks * c->b_k;
-  c->H = (3*Boltzmann*c->T) / (c->L_s * c->b_k);                              //Taken from Simons paper, values for polystyrene not DNA
-
-  c->MaxExtension = 5 * c->Q_0;
+  c->N_ks = c->N_k/c->N;
+  c->L_s = c->N_ks*c->b_k;
+  c->H = (3*Boltzmann*c->T)/(c->L_s*c->b_k);                              //Taken from Simons paper, values for polystyrene not DNA
 
   //c.m = 1.9927E-26;
   c->m = 0.104 / AvogadroNum;                                          //Bead mass for styrene
@@ -179,7 +177,7 @@ int initialise(CONSTANTS* c, POSITION** PositionArrayOld, POSITION** PositionArr
 
   int i;
   for (i = 2; i < c->N; i++){
-      CalcNextBallPos((*PositionArrayOld)[i-1], &((*PositionArrayOld)[i]), LastBondAngles, *c);
+      CalcKnotPos(*c, &((*PositionArrayOld)[i]), (*PositionArrayOld)[i-1]);
   }
 
   return 0;
@@ -234,22 +232,21 @@ FENE FENEForce(POSITION nMinusOnePos, POSITION nPos, POSITION nPosPlusOne, CONST
 
   double Q_x1 = nPosPlusOne.xPos - nPos.xPos;
 //Qs are current spring length, non-equilibrium
-  FENEForces.FENE_x1 = (c.H * Q_x1) / (1 - ( pow(Q_x1, 2) / pow(c.MaxExtension, 2)));                             //Q_x1 is bond length for x & right, x2 left, y in y-dir etc
-  
+  FENEForces.FENE_x1 = (c.H * Q_x1) / (1 - ( pow(Q_x1, 2) / pow(c.Q_0, 2)));                             //Q_x1 is bond length for x & right, x2 left, y in y-dir etc
   double Q_x2 = nPos.xPos - nMinusOnePos.xPos;
-  FENEForces.FENE_x2 = (c.H * Q_x2) / (1 - ( pow(Q_x2, 2) / pow(c.MaxExtension, 2)));                           //Values usually between -10 & 10 -- -297 on one run?
+  FENEForces.FENE_x2 = (c.H * Q_x2) / (1 - ( pow(Q_x2, 2) / pow(c.Q_0, 2)));                           //Values usually between -10 & 10 -- -297 on one run?
 
   double Q_y1 = nPosPlusOne.yPos - nPos.yPos;
-  FENEForces.FENE_y1 = (c.H * Q_y1) / (1 - (pow(Q_y1, 2) / pow (c.MaxExtension, 2)));
+  FENEForces.FENE_y1 = (c.H * Q_y1) / (1 - (pow(Q_y1, 2) / pow (c.Q_0, 2)));
 
   double Q_y2 = nPos.yPos - nMinusOnePos.yPos;
-  FENEForces.FENE_y2 = (c.H * Q_y2) / (1 - (pow(Q_y2, 2) / pow (c.MaxExtension, 2)));
+  FENEForces.FENE_y2 = (c.H * Q_y2) / (1 - (pow(Q_y2, 2) / pow (c.Q_0, 2)));
 
   double Q_z1 = nPosPlusOne.zPos - nPos.zPos;
-  FENEForces.FENE_z1 = (c.H * Q_z1) / (1 - (pow(Q_z1, 2) / pow (c.MaxExtension, 2)));
+  FENEForces.FENE_z1 = (c.H * Q_z1) / (1 - (pow(Q_z1, 2) / pow (c.Q_0, 2)));
 
   double Q_z2 = nPos.zPos - nMinusOnePos.zPos;
-  FENEForces.FENE_z2 = (c.H * Q_z2) / (1 - (pow(Q_z2, 2) / pow (c.MaxExtension, 2)));
+  FENEForces.FENE_z2 = (c.H * Q_z2) / (1 - (pow(Q_z2, 2) / pow (c.Q_0, 2)));
 
   return FENEForces;
 }
@@ -281,9 +278,9 @@ POSITION Forces(POSITION nMinusOnePos, POSITION nPosOld, POSITION nPosPlusOne, P
   nPosNew.xPos = nPosOld.xPos + (c.h*((FENEForces.FENE_x1 - FENEForces.FENE_x2)/c.eta  + BrownianForces.BrownianForce_x));
   // printf("%.12lf\n", (c.eta * c.FlowVel));
 
-  nPosNew.yPos = nPosOld.yPos + (c.h*((FENEForces.FENE_y1 - FENEForces.FENE_y2)/c.eta  + BrownianForces.BrownianForce_y));
+  nPosNew.yPos = nPosOld.yPos + (c.h*((FENEForces.FENE_x1 - FENEForces.FENE_x2)/c.eta  + BrownianForces.BrownianForce_y));
 
-  nPosNew.zPos = nPosOld.zPos + (c.h*((FENEForces.FENE_z1 - FENEForces.FENE_z2)/c.eta  + BrownianForces.BrownianForce_z));
+  nPosNew.zPos = nPosOld.zPos + (c.h*((FENEForces.FENE_x1 - FENEForces.FENE_x2)/c.eta  + BrownianForces.BrownianForce_z));
   return nPosNew;
 }
 
@@ -294,11 +291,11 @@ POSITION ForcesLast(POSITION nMinusOnePos, POSITION nPosOld, POSITION nPosPlusOn
 
   double StokeDragForce = DragForce(c);
 
-  nPosNew.xPos = nPosOld.xPos + (c.h*((-FENEForces.FENE_x2)/c.eta + BrownianForces.BrownianForce_x));            //x INCREASES by FENE acc (a = F/m) and Brownian acc
+  nPosNew.xPos = nPosOld.xPos + (c.h*((FENEForces.FENE_x1 - FENEForces.FENE_x2)/c.eta + BrownianForces.BrownianForce_x));            //x INCREASES by FENE acc (a = F/m) and Brownian acc
 
-  nPosNew.yPos = nPosOld.yPos + (c.h*((-FENEForces.FENE_y2)/c.eta + BrownianForces.BrownianForce_y));
+  nPosNew.yPos = nPosOld.yPos + (c.h*((FENEForces.FENE_x1 - FENEForces.FENE_x2)/c.eta + BrownianForces.BrownianForce_y));
 
-  nPosNew.zPos = nPosOld.zPos + (c.h*((-FENEForces.FENE_z2)/c.eta + BrownianForces.BrownianForce_z));
+  nPosNew.zPos = nPosOld.zPos + (c.h*((FENEForces.FENE_x1 - FENEForces.FENE_x2)/c.eta + BrownianForces.BrownianForce_z));
 
   return nPosNew;
 }
@@ -339,43 +336,48 @@ int collision(CONSTANTS c, POSITION* PositionArrayNew){
 
   return EXIT_SUCCESS;
 }
-int CalcKnotPos(CONSTANTS c, POSITION* PositionArrayNew)
-{
-	double phi_knot;
-	double p, q, r;					//variables in knot eq, wiki
-	p = 4;
-	q = 3;							//For 8_19 knot
+
+int CalcKnotPos(CONSTANTS c, POSITION* PositionArrayNew, POSITION nMinusOnePos){
+
+	double phi_knot = 0;
+	double p, q, r, TestxPos = 0.0, TestyPos = 0.0, TestzPos = 0.0 ;					//variables in knot eq, wiki
+	p = 4.0;
+	q = 3.0;							//For 8_19 knot
 
 	double bondlength = 0.0;
 
-	phi_knot = 0.0;
-	r = cos(q * phi_knot) + 2;
-	PositionArrayNew[0].xPos = r * cos(p * phi_knot);
-	PositionArrayNew[0].yPos = r * sin(p * phi_knot);
-	PositionArrayNew[0].zPos = - sin(q * phi_knot);
+	phi_knot = 0;
 
 	int i;
 
 	for(i = 1; i < c.N; i++)
 	{
+    if((i > 0 && i < 15) || (i > 30 && i < c.N )){
+      PositionArrayNew[i].xPos = nMinusOnePos.xPos + (c.Q_0 * 0.8);
+      PositionArrayNew[i].yPos = nMinusOnePos.yPos;
+      PositionArrayNew[i].zPos = nMinusOnePos.zPos;
+    }
 
-		while(bondlength < c.Q_0*0.9)
-		{
-			phi_knot += 0.01 ;
+    else{
+  		while(bondlength < c.Q_0*0.9){
 
-			r = cos(q * phi_knot) + 2;
+  			phi_knot += 0.001 ;
+        r = cos(q * phi_knot) + 2;
 
-			PositionArrayNew[i].xPos = r * cos(p * phi_knot);
-			PositionArrayNew[i].yPos = r * sin(p * phi_knot);
-			PositionArrayNew[i].zPos = - sin(q * phi_knot);
+  			TestxPos = r * cos(p * phi_knot);
+  			TestyPos = r * sin(p * phi_knot);
+  			TestzPos = - sin(q * phi_knot);
 
-			bondlength = sqrt(pow(PositionArrayNew[i].xPos - PositionArrayNew[i-1].xPos, 2) + pow(PositionArrayNew[i].yPos - PositionArrayNew[i-1].yPos, 2) + pow(PositionArrayNew[i].zPos - PositionArrayNew[i-1].zPos, 2));
+  			bondlength = sqrt(pow(PositionArrayNew[i].xPos - PositionArrayNew[i-1].xPos, 2) + pow(PositionArrayNew[i].yPos - PositionArrayNew[i-1].yPos, 2) + pow(PositionArrayNew[i].zPos - PositionArrayNew[i-1].zPos, 2));
 
-		}
+		    }
 
-	}
+        PositionArrayNew[i].xPos = (15 * c.Q_0) + TestxPos;
+  			PositionArrayNew[i].yPos = TestyPos;
+  			PositionArrayNew[i].zPos = TestzPos;
+    }
+  }
   return EXIT_SUCCESS;
-
 }
 
 int writeValues(CONSTANTS c, POSITION* frames)
