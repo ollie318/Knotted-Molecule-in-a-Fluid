@@ -67,7 +67,7 @@ int initialise(CONSTANTS* c, POSITION** PositionArrayOld, POSITION** PositionArr
 
 int timestep(CONSTANTS c, POSITION* PositionArrayOld, POSITION* PositionArrayNew);									//Loop that calls Forces for each bead, will inc collision
 
-int updateFrames(CONSTANTS c, int CurrentFrame, POSITION* frames, POSITION* positions);								//Writes current set of positions into frames
+int updateFrames(CONSTANTS c, int CurrentFrame, POSITION* frames, POSITION* positions);								//Writes current set of positions into frames, frames written to file at end
 
 int writeValues(CONSTANTS c, POSITION* frames);																		//Writes all bead positions to file after arrays finished
 
@@ -138,7 +138,6 @@ int initialise(CONSTANTS* c, POSITION** PositionArrayOld, POSITION** PositionArr
   c->N = 20;
   c->maxIters = 10000;
 
-
   c->BeadRadi = 100E-9;                                                //diameter of polystyrene
   c->FluidViscos = 30;                                             //Fluid viscosity
   c->FlowVel = 13.0;                                                    //Fluid velocity, NOT relative velocity as needed for Stokes Law
@@ -150,13 +149,15 @@ int initialise(CONSTANTS* c, POSITION** PositionArrayOld, POSITION** PositionArr
   //Spring coefficient calcs
   c->N_k = 2626;
   c->b_k = 1.8E-9;
-  c->N_ks = c->N_k/c->N;
-  c->L_s = c->N_ks*c->b_k;
-  c->H = (3*Boltzmann*c->T)/(c->L_s*c->b_k);                              //Taken from Simons paper, values for polystyrene not DNA
+  c->N_ks = c->N_k / c->N;
+  c->L_s = c->N_ks * c->b_k;
+  c->H = (3*Boltzmann*c->T) / (c->L_s * c->b_k);                              //Taken from Simons paper, values for polystyrene not DNA
 
   //c.m = 1.9927E-26;
   c->m = 0.104 / AvogadroNum;                                          //Bead mass for styrene
   c->Q_0 = c->N_ks * c->b_k;
+
+  c->MaxExtension = 5 * c->Q_0;
 
 
   (*PositionArrayOld) = (POSITION*) malloc(sizeof(POSITION) * c->N);
