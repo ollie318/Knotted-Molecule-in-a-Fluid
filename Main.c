@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
+#include "mtwist.h"
 
 #define Boltzmann 1.38064852E-23
 #define pi 3.1415926535897932
@@ -44,7 +45,7 @@ typedef struct
 
 int CalcNextBallPos(POSITION nMinusOnePos, POSITION* nPos, ANGLES LastAngles, CONSTANTS c);
 
-double GenRandDouble(double minDoub, double maxDoub);                   //Note: not truly random, testing purposes only!
+double GenRandDouble(CONSTANTS c);                   //Note: not truly random, testing purposes only!
 
 ANGLES CalcNextAngles(CONSTANTS c);
 
@@ -77,7 +78,7 @@ int collision(CONSTANTS c, POSITION* PositionArrayNew);																//checks 
 
 //MAIN PROG
 
-int main()
+int main(void)
 {
     CONSTANTS c;
     POSITION* PositionArrayOld;
@@ -89,7 +90,7 @@ int main()
     int loopcount;
     for(loopcount = 0; loopcount < c.maxIters; loopcount++){
 
-        updateFrames(c, loopcount, frames, PositionArrayNew);
+        updateFrames(c, loopcount, frames, PositionArrayOld);
         timestep(c, PositionArrayOld, PositionArrayNew);
         int j;
         for(j = 1; j < c.N; j ++){
@@ -159,7 +160,6 @@ int initialise(CONSTANTS* c, POSITION** PositionArrayOld, POSITION** PositionArr
 
     c->MaxExtension = 5 * c->Q_0;
 
-
     (*PositionArrayOld) = (POSITION*) malloc(sizeof(POSITION) * c->N);
     (*PositionArrayNew) = (POSITION*) malloc(sizeof(POSITION) * c->N);
     (*frames) = (POSITION*) malloc(sizeof(POSITION) * c->N * c->maxIters);
@@ -187,30 +187,42 @@ int initialise(CONSTANTS* c, POSITION** PositionArrayOld, POSITION** PositionArr
 
 int CalcNextBallPos(POSITION nMinusOnePos, POSITION* nPos, ANGLES LastAngles, CONSTANTS c)
 {
-    ANGLES nAngles = CalcNextAngles(c);
 
-    nPos -> xPos = nMinusOnePos.xPos + ( c.Q_0 * (sin(LastAngles.theta + nAngles.theta) * cos(LastAngles.phi + nAngles.phi)) );
-    nPos -> yPos = nMinusOnePos.yPos + ( c.Q_0 * (sin(LastAngles.theta + nAngles.theta) * sin(LastAngles.phi + nAngles.phi)) );
-    nPos -> zPos = nMinusOnePos.zPos + ( c.Q_0 * (cos(LastAngles.theta + nAngles.theta)) );
+    nPos -> xPos = nMinusOnePos.xPos + ( c.Q_0 * 0.8 );
+    nPos -> yPos = nMinusOnePos.yPos + ( c.Q_0 * 0.8 );
+    nPos -> zPos = nMinusOnePos.zPos + ( c.Q_0 * 0.8 );
 
     return EXIT_SUCCESS;
 }
 
-ANGLES CalcNextAngles(CONSTANTS c)
+double GenRandDouble(CONSTANTS c)
 {
-    ANGLES NewAngles;
-    NewAngles.theta = GenRandDouble(-pi/4, pi/4);
-    NewAngles.phi = GenRandDouble(-pi, pi);
+  mt_seed();
 
-    return NewAngles;
-}
+	float x1, x2, w, y1;
+	static float y2;
+	static int use_last = 0;
 
-double GenRandDouble(double minDoub, double maxDoub)
-{
-    double randDoub;
-    double fraction = rand() / (RAND_MAX + 1.0);
-    randDoub = minDoub + (maxDoub - minDoub) * fraction;
-    return randDoub;
+	if (use_last)		        /* use value from previous call */
+	{
+		y1 = y2;
+		use_last = 0;
+	}
+	else
+	{
+		do {
+			x1 = 2.0 * mt_ldrand() - 1.0;
+			x2 = 2.0 * mt_ldrand() - 1.0;
+			w = x1 * x1 + x2 * x2;
+		} while ( w >= 1.0 );
+
+		w = sqrt( (-2.0 * log( w ) ) / w );
+		y1 = x1 * w;
+		y2 = x2 * w;
+		use_last = 1;
+	}
+
+	return( y1 * sqrt(2 * c.D * c.h));
 }
 
 
@@ -263,9 +275,9 @@ double DragForce (CONSTANTS c)
 BROWNIAN Brownian(CONSTANTS c){
     BROWNIAN BrownianForces;
 
-    BrownianForces.BrownianForce_x = sqrt((6 * Boltzmann * c.T)/(6 * pi * c.FluidViscos * c.BeadRadi * c.h)) * GenRandDouble(-1, 1);            //random number from 1 to -1
-    BrownianForces.BrownianForce_y = sqrt((6 * Boltzmann * c.T)/(6 * pi * c.FluidViscos * c.BeadRadi * c.h)) * GenRandDouble(-1, 1);			  //will need Gaussian dist number -1 to 1
-    BrownianForces.BrownianForce_z = sqrt((6 * Boltzmann * c.T)/(6 * pi * c.FluidViscos * c.BeadRadi * c.h)) * GenRandDouble(-1, 1);            //On the scale E-2
+    BrownianForces.BrownianForce_x = sqrt((6 * Boltzmann * c.T)/(6 * pi * c.FluidViscos * c.BeadRadi * c.h)) * GenRandDouble(c);            //random number from 1 to -1
+    BrownianForces.BrownianForce_y = sqrt((6 * Boltzmann * c.T)/(6 * pi * c.FluidViscos * c.BeadRadi * c.h)) * GenRandDouble(c);			  //will need Gaussian dist number -1 to 1
+    BrownianForces.BrownianForce_z = sqrt((6 * Boltzmann * c.T)/(6 * pi * c.FluidViscos * c.BeadRadi * c.h)) * GenRandDouble(c);            //On the scale E-2
 
     return BrownianForces;
 }
@@ -354,7 +366,7 @@ int CalcKnotPos(CONSTANTS c, POSITION* PositionArrayNew, POSITION nMinusOnePos, 
     }
 
     else{
-        while(bondlength < c.Q_0*0.9){
+        while(bondlength < c.Q_0*0.8){
 
             phi_knot += 0.01 ;
             r = cos(q * phi_knot) + 2;
@@ -367,7 +379,7 @@ int CalcKnotPos(CONSTANTS c, POSITION* PositionArrayNew, POSITION nMinusOnePos, 
 
         }
 
-        PositionArrayNew[i].xPos = (15 * c.Q_0) + TestxPos;
+        PositionArrayNew[i].xPos = nMinusOnePos.xPos + (c.Q_0 * 0.8);
         PositionArrayNew[i].yPos = TestyPos;
         PositionArrayNew[i].zPos = TestzPos;
     }
