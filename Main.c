@@ -45,7 +45,9 @@ typedef struct
 
 int CalcNextBallPos(POSITION nMinusOnePos, POSITION* nPos, ANGLES LastAngles, CONSTANTS c);
 
-double GenRandDouble(CONSTANTS c);                   //Note: not truly random, testing purposes only!
+double GenRandDouble(double minDoub, double maxDoub);
+
+double GenRandDoubleMT(CONSTANTS c);                   //Note: not truly random, testing purposes only!
 
 ANGLES CalcNextAngles(CONSTANTS c);
 
@@ -293,9 +295,9 @@ double DragForce (CONSTANTS c)
 BROWNIAN Brownian(CONSTANTS c){
     BROWNIAN BrownianForces;
 
-    BrownianForces.BrownianForce_x = sqrt((6 * Boltzmann * c.T)/(6 * pi * c.FluidViscos * c.BeadRadi * c.h)) * GenRandDouble(c);            //random number from 1 to -1
-    BrownianForces.BrownianForce_y = sqrt((6 * Boltzmann * c.T)/(6 * pi * c.FluidViscos * c.BeadRadi * c.h)) * GenRandDouble(c);			  //will need Gaussian dist number -1 to 1
-    BrownianForces.BrownianForce_z = sqrt((6 * Boltzmann * c.T)/(6 * pi * c.FluidViscos * c.BeadRadi * c.h)) * GenRandDouble(c);            //On the scale E-2
+    BrownianForces.BrownianForce_x = sqrt((6 * Boltzmann * c.T)/(6 * pi * c.FluidViscos * c.BeadRadi * c.h)) * GenRandDouble(-1, 1);            //random number from 1 to -1
+    BrownianForces.BrownianForce_y = sqrt((6 * Boltzmann * c.T)/(6 * pi * c.FluidViscos * c.BeadRadi * c.h)) * GenRandDouble(-1, 1);			  //will need Gaussian dist number -1 to 1
+    BrownianForces.BrownianForce_z = sqrt((6 * Boltzmann * c.T)/(6 * pi * c.FluidViscos * c.BeadRadi * c.h)) * GenRandDouble(-1, 1);            //On the scale E-2
 
     return BrownianForces;
 }
