@@ -213,7 +213,7 @@ double GenRandDouble(double minDoub, double maxDoub)
 }
 
 
-double GenRandDouble(CONSTANTS c)
+double GenRandDoubleMT(CONSTANTS c)
 {
   seedMT();
 
