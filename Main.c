@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
-#include "mtwist.h"
+// #include "mtwist.h"
 
 #define Boltzmann 1.38064852E-23
 #define pi 3.1415926535897932
@@ -171,8 +171,8 @@ int initialise(CONSTANTS* c, POSITION** PositionArrayOld, POSITION** PositionArr
     (*PositionArrayOld)[0].zPos = 0;
 
     (*PositionArrayOld)[1].xPos = (*PositionArrayOld)[0].xPos + (0.8 * c->Q_0);
-    (*PositionArrayOld)[1].yPos = (*PositionArrayOld)[0].yPos;
-    (*PositionArrayOld)[1].zPos = (*PositionArrayOld)[0].zPos;
+    (*PositionArrayOld)[1].yPos = (*PositionArrayOld)[0].yPos + (0.8 * c->Q_0);
+    (*PositionArrayOld)[1].zPos = (*PositionArrayOld)[0].zPos + (0.8 * c->Q_0);
 
     ANGLES LastBondAngles;
     LastBondAngles.phi = 0;
@@ -180,7 +180,7 @@ int initialise(CONSTANTS* c, POSITION** PositionArrayOld, POSITION** PositionArr
 
     int i;
     for (i = 2; i < c->N; i++){
-        // CalcKnotPos(*c, &((*PositionArrayOld)[i]), (*PositionArrayOld)[i-1], i);
+//         CalcKnotPos(*c, &((*PositionArrayOld)[i]), (*PositionArrayOld)[i-1], i);
         CalcNextBallPos((*PositionArrayOld)[i-1], &((*PositionArrayOld)[i]), LastBondAngles, *c);
     }
 
@@ -199,51 +199,51 @@ int CalcNextBallPos(POSITION nMinusOnePos, POSITION* nPos, ANGLES LastAngles, CO
 
 ANGLES CalcNextAngles(CONSTANTS c)
 {
-  ANGLES NewAngles;
-  NewAngles.theta = GenRandDouble(-pi/4, pi/4);
-  NewAngles.phi = GenRandDouble(-pi, pi);
+    ANGLES NewAngles;
+    NewAngles.theta = GenRandDouble(-pi/4, pi/4);
+    NewAngles.phi = GenRandDouble(-pi, pi);
 
-  return NewAngles;
+    return NewAngles;
 }
 
 double GenRandDouble(double minDoub, double maxDoub)
 {
-  double randDoub;
-  double fraction = rand() / (RAND_MAX + 1.0);
-  randDoub = minDoub + (maxDoub - minDoub) * fraction;
-  return randDoub;
+    double randDoub;
+    double fraction = rand() / (RAND_MAX + 1.0);
+    randDoub = minDoub + (maxDoub - minDoub) * fraction;
+    return randDoub;
 }
 
 
-double GenRandDoubleMT(CONSTANTS c)
-{
-  seedMT();
-
-	float x1, x2, w, y1;
-	static float y2;
-	static int use_last = 0;
-
-	if (use_last)		        /* use value from previous call */
-	{
-		y1 = y2;
-		use_last = 0;
-	}
-	else
-	{
-		do {
-			x1 = 2.0 * randomMT() - 1.0;
-			x2 = 2.0 * randomMT() - 1.0;
-			w = x1 * x1 + x2 * x2;
-		} while ( w >= 1.0 );
-
-		w = sqrt( (-2.0 * log( w ) ) / w );
-		y1 = x1 * w;
-		y2 = x2 * w;
-		use_last = 1;
-	}
-
-	return( y1 * sqrt(2 * c.D * c.h));
-}
+// double GenRandDoubleMT(CONSTANTS c)
+// {
+//   seedMT();
+//
+// 	float x1, x2, w, y1;
+// 	static float y2;
+// 	static int use_last = 0;
+//
+// 	if (use_last)		        /* use value from previous call */
+// 	{
+// 		y1 = y2;
+// 		use_last = 0;
+// 	}
+// 	else
+// 	{
+// 		do {
+// 			x1 = 2.0 * randomMT() - 1.0;
+// 			x2 = 2.0 * randomMT() - 1.0;
+// 			w = x1 * x1 + x2 * x2;
+// 		} while ( w >= 1.0 );
+//
+// 		w = sqrt( (-2.0 * log( w ) ) / w );
+// 		y1 = x1 * w;
+// 		y2 = x2 * w;
+// 		use_last = 1;
+// 	}
+//
+// 	return( y1 * sqrt(2 * c.D * c.h));
+// }
 
 
 TWO_GAUSS BoxMullerTrans (CONSTANTS c, double input_1, double input_2)
@@ -285,19 +285,12 @@ FENE FENEForce(POSITION nMinusOnePos, POSITION nPos, POSITION nPosPlusOne, CONST
     return FENEForces;
 }
 
-double DragForce (CONSTANTS c)
-{
-    double StokeForce;
-    StokeForce = - 6 * pi * c.FluidViscos * c.FlowVel * c.BeadRadi;
-    return StokeForce;
-}
-
 BROWNIAN Brownian(CONSTANTS c){
     BROWNIAN BrownianForces;
 
-    BrownianForces.BrownianForce_x = sqrt((6 * Boltzmann * c.T)/(6 * pi * c.FluidViscos * c.BeadRadi * c.h)) * GenRandDouble(-1, 1);            //random number from 1 to -1
-    BrownianForces.BrownianForce_y = sqrt((6 * Boltzmann * c.T)/(6 * pi * c.FluidViscos * c.BeadRadi * c.h)) * GenRandDouble(-1, 1);			  //will need Gaussian dist number -1 to 1
-    BrownianForces.BrownianForce_z = sqrt((6 * Boltzmann * c.T)/(6 * pi * c.FluidViscos * c.BeadRadi * c.h)) * GenRandDouble(-1, 1);            //On the scale E-2
+    BrownianForces.BrownianForce_x = sqrt((6 * Boltzmann * c.T*c.eta)/c.h) * GenRandDouble(-1, 1);            //random number from 1 to -1
+    BrownianForces.BrownianForce_y = sqrt((6 * Boltzmann * c.T*c.eta)/c.h) * GenRandDouble(-1, 1);			  //will need Gaussian dist number -1 to 1
+    BrownianForces.BrownianForce_z = sqrt((6 * Boltzmann * c.T*c.eta)/c.h) * GenRandDouble(-1, 1);            //On the scale E-2
 
     return BrownianForces;
 }
@@ -307,10 +300,8 @@ POSITION Forces(POSITION nMinusOnePos, POSITION nPosOld, POSITION nPosPlusOne, P
     BROWNIAN BrownianForces = Brownian(c);
     FENE FENEForces = FENEForce(nMinusOnePos, nPosOld, nPosPlusOne, c);
 
-    double StokeDragForce = DragForce(c);
-
-    nPosNew.xPos = nPosOld.xPos + (c.h*((FENEForces.FENE_x1 - FENEForces.FENE_x2)/c.eta  + BrownianForces.BrownianForce_x/c.eta));
-    // printf("%.12lf\n", (c.eta * c.FlowVel));
+    nPosNew.xPos = nPosOld.xPos + (c.h*((FENEForces.FENE_x1 - FENEForces.FENE_x2)/c.eta  + BrownianForces.BrownianForce_x/c.eta)) + nPosOld.xPos * 20;
+//     printf("%.12lf\n", (c.h*((FENEForces.FENE_x1 - FENEForces.FENE_x2)/c.eta  + BrownianForces.BrownianForce_x/c.eta)));
 
     nPosNew.yPos = nPosOld.yPos + (c.h*((FENEForces.FENE_x1 - FENEForces.FENE_x2)/c.eta  + BrownianForces.BrownianForce_y/c.eta));
 
@@ -323,9 +314,7 @@ POSITION ForcesLast(POSITION nMinusOnePos, POSITION nPosOld, POSITION nPosPlusOn
     BROWNIAN BrownianForces = Brownian(c);
     FENE FENEForces = FENEForce(nMinusOnePos, nPosOld, nPosPlusOne, c);
 
-    double StokeDragForce = DragForce(c);
-
-    nPosNew.xPos = nPosOld.xPos + (c.h*((FENEForces.FENE_x1 - FENEForces.FENE_x2)/c.eta + BrownianForces.BrownianForce_x/c.eta));            //x INCREASES by FENE acc (a = F/m) and Brownian acc
+    nPosNew.xPos = nPosOld.xPos + (c.h*((FENEForces.FENE_x1 - FENEForces.FENE_x2)/c.eta + BrownianForces.BrownianForce_x/c.eta)) + nPosOld.xPos * 20;            //x INCREASES by FENE acc (a = F/m) and Brownian acc
 
     nPosNew.yPos = nPosOld.yPos + (c.h*((FENEForces.FENE_x1 - FENEForces.FENE_x2)/c.eta + BrownianForces.BrownianForce_y/c.eta));
 
@@ -381,8 +370,8 @@ int CalcKnotPos(CONSTANTS c, POSITION* PositionArrayNew, POSITION nMinusOnePos, 
 
     if((i > 1 && i < 15) || (i > 30 && i < c.N )){
         PositionArrayNew[i].xPos = nMinusOnePos.xPos + (c.Q_0 * 0.8);
-        PositionArrayNew[i].yPos = nMinusOnePos.yPos;
-        PositionArrayNew[i].zPos = nMinusOnePos.zPos;
+        PositionArrayNew[i].yPos = nMinusOnePos.yPos + (c.Q_0 * 0.8);
+        PositionArrayNew[i].zPos = nMinusOnePos.zPos + (c.Q_0 * 0.8);
     }
 
     else{
