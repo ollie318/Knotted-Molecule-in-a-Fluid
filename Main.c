@@ -197,7 +197,7 @@ int CalcNextBallPos(POSITION nMinusOnePos, POSITION* nPos, ANGLES LastAngles, CO
 
 double GenRandDouble(CONSTANTS c)
 {
-  mt_seed();
+  seedMT();
 
 	float x1, x2, w, y1;
 	static float y2;
@@ -211,8 +211,8 @@ double GenRandDouble(CONSTANTS c)
 	else
 	{
 		do {
-			x1 = 2.0 * mt_ldrand() - 1.0;
-			x2 = 2.0 * mt_ldrand() - 1.0;
+			x1 = 2.0 * randomMT() - 1.0;
+			x2 = 2.0 * randomMT() - 1.0;
 			w = x1 * x1 + x2 * x2;
 		} while ( w >= 1.0 );
 
