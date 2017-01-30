@@ -195,6 +195,24 @@ int CalcNextBallPos(POSITION nMinusOnePos, POSITION* nPos, ANGLES LastAngles, CO
     return EXIT_SUCCESS;
 }
 
+ANGLES CalcNextAngles(CONSTANTS c)
+{
+  ANGLES NewAngles;
+  NewAngles.theta = GenRandDouble(-pi/4, pi/4);
+  NewAngles.phi = GenRandDouble(-pi, pi);
+
+  return NewAngles;
+}
+
+double GenRandDouble(double minDoub, double maxDoub)
+{
+  double randDoub;
+  double fraction = rand() / (RAND_MAX + 1.0);
+  randDoub = minDoub + (maxDoub - minDoub) * fraction;
+  return randDoub;
+}
+
+
 double GenRandDouble(CONSTANTS c)
 {
   seedMT();
