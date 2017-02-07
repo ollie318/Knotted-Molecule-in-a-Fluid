@@ -41,6 +41,11 @@ typedef struct
     int N, maxIters;
 } CONSTANTS;
 
+typedef struct
+{
+    double potentialX, potentialY, potentialZ;
+}POTENTIAL;
+
 //FUNCTION PROTOTYPES
 
 int CalcNextBallPos(POSITION nMinusOnePos, POSITION* nPos, ANGLES LastAngles, CONSTANTS c);
@@ -61,14 +66,14 @@ double DragForce (CONSTANTS c);
 
 BROWNIAN Brownian(CONSTANTS c);
 
-POSITION Forces(POSITION nMinusOnePos, POSITION nPosOld, POSITION nPosPlusOne, POSITION nPosNew, CONSTANTS c);		//Gives new pos from sum forces
+POSITION Forces(POSITION nMinusOnePos, POSITION nPosOld, POSITION nPosPlusOne, POSITION nPosNew, POSITION* PositionArrayNew,  CONSTANTS c, int i);		//Gives new pos from sum forces
 
-POSITION ForcesLast(POSITION nMinusOnePos, POSITION nPosOld, POSITION nPosPlusOne, POSITION nPosNew, CONSTANTS c);
+POSITION ForcesLast(POSITION nMinusOnePos, POSITION nPosOld, POSITION nPosPlusOne, POSITION nPosNew, POSITION* PositionArrayNew, CONSTANTS c, int i);
 
 
 int initialise(CONSTANTS* c, POSITION** PositionArrayOld, POSITION** PositionArrayNew, POSITION** frames);			//Sets constants, allocates memory for array of pointers
 
-int timestep(CONSTANTS c, POSITION* PositionArrayOld, POSITION* PositionArrayNew);									//Loop that calls Forces for each bead, will inc collision
+int timestep(CONSTANTS c, POSITION* PositionArrayOld, POSITION* PositionArrayNew);									//Loop that calls Forces for each bead, will inc potential
 
 int updateFrames(CONSTANTS c, int CurrentFrame, POSITION* frames, POSITION* positions);								//Writes current set of positions into frames, frames written to file at end
 
@@ -76,7 +81,7 @@ int writeValues(CONSTANTS c, POSITION* frames);																		//Writes all be
 
 int finalise(CONSTANTS* c, POSITION** PositionArrayOld, POSITION** PositionArrayNew, POSITION** frames);			//frees memory
 
-int collision(CONSTANTS c, POSITION* PositionArrayNew);																//checks for overlap & nudges away if needed
+POTENTIAL potential(CONSTANTS c, POSITION* PositionArrayNew, int i);																//Lennard-Jones Potential
 
 //MAIN PROG
 
@@ -126,11 +131,11 @@ int timestep(CONSTANTS c, POSITION* PositionArrayOld, POSITION* PositionArrayNew
     PositionArrayNew[0].zPos = 0;
 
     for(i = 1; i < c.N-1; i ++) {
-        PositionArrayNew[i] = Forces(PositionArrayOld[i-1], PositionArrayOld[i], PositionArrayOld[i+1], PositionArrayNew[i], c);
+        PositionArrayNew[i] = Forces(PositionArrayOld[i-1], PositionArrayOld[i], PositionArrayOld[i+1], PositionArrayNew[i], PositionArrayNew, c, i);
+
     }
 
-    PositionArrayNew[c.N-1] = ForcesLast(PositionArrayOld[c.N-2], PositionArrayOld[c.N-1], PositionArrayOld[c.N-1], PositionArrayNew[c.N-1], c);
-    // collision(c, PositionArrayNew);
+    PositionArrayNew[c.N-1] = ForcesLast(PositionArrayOld[c.N-2], PositionArrayOld[c.N-1], PositionArrayOld[c.N-1], PositionArrayNew[i], PositionArrayNew, c, i);
 
     return EXIT_SUCCESS;
 }
@@ -295,66 +300,57 @@ BROWNIAN Brownian(CONSTANTS c){
     return BrownianForces;
 }
 
-POSITION Forces(POSITION nMinusOnePos, POSITION nPosOld, POSITION nPosPlusOne, POSITION nPosNew, CONSTANTS c){
+POSITION Forces(POSITION nMinusOnePos, POSITION nPosOld, POSITION nPosPlusOne, POSITION nPosNew, POSITION* PositionArrayNew,  CONSTANTS c, int i){
 
     BROWNIAN BrownianForces = Brownian(c);
     FENE FENEForces = FENEForce(nMinusOnePos, nPosOld, nPosPlusOne, c);
+    POTENTIAL pot = potential(c, PositionArrayNew, i);
 
-    nPosNew.xPos = nPosOld.xPos + (c.h*((FENEForces.FENE_x1 - FENEForces.FENE_x2)/c.eta  + BrownianForces.BrownianForce_x/c.eta)) + nPosOld.xPos * 20;
+    nPosNew.xPos = nPosOld.xPos + (c.h*((FENEForces.FENE_x1 - FENEForces.FENE_x2)/c.eta  + BrownianForces.BrownianForce_x/c.eta));
 //     printf("%.12lf\n", (c.h*((FENEForces.FENE_x1 - FENEForces.FENE_x2)/c.eta  + BrownianForces.BrownianForce_x/c.eta)));
 
-    nPosNew.yPos = nPosOld.yPos + (c.h*((FENEForces.FENE_x1 - FENEForces.FENE_x2)/c.eta  + BrownianForces.BrownianForce_y/c.eta));
+    nPosNew.yPos = nPosOld.yPos + (c.h*((FENEForces.FENE_y1 - FENEForces.FENE_y2)/c.eta  + BrownianForces.BrownianForce_y/c.eta));
 
-    nPosNew.zPos = nPosOld.zPos + (c.h*((FENEForces.FENE_x1 - FENEForces.FENE_x2)/c.eta  + BrownianForces.BrownianForce_z/c.eta));
+    nPosNew.zPos = nPosOld.zPos + (c.h*((FENEForces.FENE_z1 - FENEForces.FENE_z2)/c.eta  + BrownianForces.BrownianForce_z/c.eta));
     return nPosNew;
 }
 
-POSITION ForcesLast(POSITION nMinusOnePos, POSITION nPosOld, POSITION nPosPlusOne, POSITION nPosNew, CONSTANTS c){
+POSITION ForcesLast(POSITION nMinusOnePos, POSITION nPosOld, POSITION nPosPlusOne, POSITION nPosNew, POSITION* PositionArrayNew, CONSTANTS c, int i){
 
     BROWNIAN BrownianForces = Brownian(c);
     FENE FENEForces = FENEForce(nMinusOnePos, nPosOld, nPosPlusOne, c);
+    POTENTIAL pot = potential(c, PositionArrayNew, i);
 
-    nPosNew.xPos = nPosOld.xPos + (c.h*((FENEForces.FENE_x1 - FENEForces.FENE_x2)/c.eta + BrownianForces.BrownianForce_x/c.eta)) + nPosOld.xPos * 20;            //x INCREASES by FENE acc (a = F/m) and Brownian acc
+    nPosNew.xPos = nPosOld.xPos + (c.h*((FENEForces.FENE_x1 - FENEForces.FENE_x2)/c.eta + BrownianForces.BrownianForce_x/c.eta));            //x INCREASES by FENE acc (a = F/m) and Brownian acc
 
-    nPosNew.yPos = nPosOld.yPos + (c.h*((FENEForces.FENE_x1 - FENEForces.FENE_x2)/c.eta + BrownianForces.BrownianForce_y/c.eta));
+    nPosNew.yPos = nPosOld.yPos + (c.h*((FENEForces.FENE_y1 - FENEForces.FENE_y2)/c.eta + BrownianForces.BrownianForce_y/c.eta));
 
-    nPosNew.zPos = nPosOld.zPos + (c.h*((FENEForces.FENE_x1 - FENEForces.FENE_x2)/c.eta + BrownianForces.BrownianForce_z/c.eta));
+    nPosNew.zPos = nPosOld.zPos + (c.h*((FENEForces.FENE_z1 - FENEForces.FENE_z2)/c.eta + BrownianForces.BrownianForce_z/c.eta));
 
     return nPosNew;
 }
 
-int collision(CONSTANTS c, POSITION* PositionArrayNew){
-    double separation;
-
-    int i, j;
-    for(i = 0; i < c.N; i++)
+POTENTIAL potential(CONSTANTS c, POSITION* PositionArrayNew, int i){
+    double sepX, sepY, sepZ, epsilon, sigma, potX, potY, potZ;
+    POTENTIAL pot;
+    int j;
+    for(j = 0; j < c.N; j++)
     {
-        for(j = 0; j < c.N; j++)
-        {
-            separation = sqrt(pow(PositionArrayNew[i].xPos - PositionArrayNew[j].xPos, 2) + pow(PositionArrayNew[i].yPos - PositionArrayNew[j].yPos, 2) + pow(PositionArrayNew[i].zPos - PositionArrayNew[j].zPos, 2));
 
-            if(separation <= 2*c.BeadRadi && i != j)
-            {
-                POSITION unit;
-                unit.xPos = (PositionArrayNew[i].xPos - PositionArrayNew[j].xPos) / separation;
-                unit.yPos = (PositionArrayNew[i].yPos - PositionArrayNew[j].yPos) / separation;
-                unit.zPos = (PositionArrayNew[i].zPos - PositionArrayNew[j].zPos) / separation;
+        sepX = PositionArrayNew[i].xPos - PositionArrayNew[j].xPos;
+        sepY = PositionArrayNew[i].yPos - PositionArrayNew[j].yPos;
+        sepZ = PositionArrayNew[i].zPos - PositionArrayNew[j].zPos;
 
-                double nudge = (separation - 2*c.BeadRadi) / 2.0;
+        potX = ((24*epsilon)/sigma) * (2*pow((sigma/sepX), 13) - 2*pow((sigma/sepX), 7));
+        potY = ((24*epsilon)/sigma) * (2*pow((sigma/sepY), 13) - 2*pow((sigma/sepY), 7));
+        potZ = ((24*epsilon)/sigma) * (2*pow((sigma/sepZ), 13) - 2*pow((sigma/sepZ), 7));
 
-                PositionArrayNew[i].xPos += nudge * unit.xPos;
-                PositionArrayNew[i].yPos += nudge * unit.yPos;
-                PositionArrayNew[i].zPos += nudge * unit.zPos;
-
-                PositionArrayNew[j].xPos -= nudge * unit.xPos;
-                PositionArrayNew[j].yPos -= nudge * unit.yPos;
-                PositionArrayNew[j].zPos -= nudge * unit.zPos;
-
-            }
-        }
+        pot.potentialX += potX;
+        pot.potentialY += potY;
+        pot.potentialZ += potZ;
     }
 
-    return EXIT_SUCCESS;
+    return pot;
 }
 
 int CalcKnotPos(CONSTANTS c, POSITION* PositionArrayNew, POSITION nMinusOnePos, int i){
