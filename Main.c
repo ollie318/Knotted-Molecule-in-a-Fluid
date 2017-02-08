@@ -1,87 +1,12 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
+#include "Main.h"
 // #include "mtwist.h"
 
 #define Boltzmann 1.38064852E-23
 #define pi 3.1415926535897932
 #define AvogadroNum 6.02E23
-
-//STRUCTURE/s
-
-typedef struct
-{
-    double xPos, yPos, zPos;
-} POSITION;
-
-typedef struct
-{
-    double theta, phi;
-} ANGLES;
-
-typedef struct
-{
-    double Gauss_1, Gauss_2;
-} TWO_GAUSS;
-
-typedef struct
-{
-    double FENE_x1, FENE_x2, FENE_y1, FENE_y2, FENE_z1, FENE_z2;
-} FENE;
-
-typedef struct
-{
-    double BrownianForce_x, BrownianForce_y, BrownianForce_z;
-} BROWNIAN;
-
-typedef struct
-{
-    double BeadRadi, FluidViscos, h, T, D, FlowVel, H, m, Q_0;
-    double N_k, N_ks, b_k, L_s, eta, MaxExtension;
-    int N, maxIters;
-} CONSTANTS;
-
-typedef struct
-{
-    double potentialX, potentialY, potentialZ;
-}POTENTIAL;
-
-//FUNCTION PROTOTYPES
-
-int CalcNextBallPos(POSITION nMinusOnePos, POSITION* nPos, ANGLES LastAngles, CONSTANTS c);
-
-double GenRandDouble(double minDoub, double maxDoub);
-
-double GenRandDoubleMT(CONSTANTS c);                   //Note: not truly random, testing purposes only!
-
-ANGLES CalcNextAngles(CONSTANTS c);
-
-int CalcKnotPos(CONSTANTS c, POSITION* PositionArrayNew, POSITION nMinusOnePos, int i);
-
-TWO_GAUSS BoxMullerTrans (CONSTANTS c, double input_1, double input_2);
-
-FENE FENEForce(POSITION nMinusOnePos, POSITION nPos, POSITION nPosPlusOne, CONSTANTS c);
-
-double DragForce (CONSTANTS c);
-
-BROWNIAN Brownian(CONSTANTS c);
-
-POSITION Forces(POSITION nMinusOnePos, POSITION nPosOld, POSITION nPosPlusOne, POSITION nPosNew, POSITION* PositionArrayNew,  CONSTANTS c, int i);		//Gives new pos from sum forces
-
-POSITION ForcesLast(POSITION nMinusOnePos, POSITION nPosOld, POSITION nPosPlusOne, POSITION nPosNew, POSITION* PositionArrayNew, CONSTANTS c, int i);
-
-
-int initialise(CONSTANTS* c, POSITION** PositionArrayOld, POSITION** PositionArrayNew, POSITION** frames);			//Sets constants, allocates memory for array of pointers
-
-int timestep(CONSTANTS c, POSITION* PositionArrayOld, POSITION* PositionArrayNew);									//Loop that calls Forces for each bead, will inc potential
-
-int updateFrames(CONSTANTS c, int CurrentFrame, POSITION* frames, POSITION* positions);								//Writes current set of positions into frames, frames written to file at end
-
-int writeValues(CONSTANTS c, POSITION* frames);																		//Writes all bead positions to file after arrays finished
-
-int finalise(CONSTANTS* c, POSITION** PositionArrayOld, POSITION** PositionArrayNew, POSITION** frames);			//frees memory
-
-POTENTIAL potential(CONSTANTS c, POSITION* PositionArrayNew, int i);																//Lennard-Jones Potential
 
 //MAIN PROG
 
@@ -157,7 +82,7 @@ int initialise(CONSTANTS* c, POSITION** PositionArrayOld, POSITION** PositionArr
     //Spring coefficient calcs
     c->N_k = 2626;
     c->b_k = 1.8E-9;
-    c->N_ks = c->N_k / c->N;
+    c->N_ks = c->N_k / (c->N-1);
     c->L_s = c->N_ks * c->b_k;
     c->H = (3*Boltzmann*c->T) / (c->L_s * c->b_k);                              //Taken from Simons paper, values for polystyrene not DNA
 
@@ -270,22 +195,22 @@ FENE FENEForce(POSITION nMinusOnePos, POSITION nPos, POSITION nPosPlusOne, CONST
     FENE FENEForces;
 
     double Q_x1 = nPosPlusOne.xPos - nPos.xPos;
-    //Qs are current spring length, non-equilibrium
-    FENEForces.FENE_x1 = (c.H * Q_x1) / (1 - ( pow(Q_x1, 2) / pow(c.MaxExtension, 2)));                             //Q_x1 is bond length for x & right, x2 left, y in y-dir etc
+    FENEForces.FENE_x1 = (c.H * Q_x1) / (1 - ((Q_x1 * Q_x1)/ (c.MaxExtension * c.MaxExtension)));                             //Q_x1 is bond length for x & right, x2 left, y in y-dir etc
+
     double Q_x2 = nPos.xPos - nMinusOnePos.xPos;
-    FENEForces.FENE_x2 = (c.H * Q_x2) / (1 - ( pow(Q_x2, 2) / pow(c.MaxExtension, 2)));                           //Values usually between -10 & 10 -- -297 on one run?
+    FENEForces.FENE_x2 = (c.H * Q_x2) / (1 - ((Q_x2 * Q_x2)/ (c.MaxExtension * c.MaxExtension)));                           //Values usually between -10 & 10 -- -297 on one run?
 
     double Q_y1 = nPosPlusOne.yPos - nPos.yPos;
-    FENEForces.FENE_y1 = (c.H * Q_y1) / (1 - (pow(Q_y1, 2) / pow (c.MaxExtension, 2)));
+    FENEForces.FENE_y1 = (c.H * Q_y1) / (1 - ((Q_y1 * Q_y1)/ (c.MaxExtension * c.MaxExtension)));
 
     double Q_y2 = nPos.yPos - nMinusOnePos.yPos;
-    FENEForces.FENE_y2 = (c.H * Q_y2) / (1 - (pow(Q_y2, 2) / pow (c.MaxExtension, 2)));
+    FENEForces.FENE_y2 = (c.H * Q_y2) / (1 - ((Q_y2 * Q_y2)/ (c.MaxExtension * c.MaxExtension)));
 
     double Q_z1 = nPosPlusOne.zPos - nPos.zPos;
-    FENEForces.FENE_z1 = (c.H * Q_z1) / (1 - (pow(Q_z1, 2) / pow (c.MaxExtension, 2)));
+    FENEForces.FENE_z1 = (c.H * Q_z1) / (1 - ((Q_z1 * Q_z1)/ (c.MaxExtension * c.MaxExtension)));
 
     double Q_z2 = nPos.zPos - nMinusOnePos.zPos;
-    FENEForces.FENE_z2 = (c.H * Q_z2) / (1 - (pow(Q_z2, 2) / pow (c.MaxExtension, 2)));
+    FENEForces.FENE_z2 = (c.H * Q_z2) / (1 - ((Q_z2 * Q_z2)/ (c.MaxExtension * c.MaxExtension)));
 
     return FENEForces;
 }
@@ -306,12 +231,12 @@ POSITION Forces(POSITION nMinusOnePos, POSITION nPosOld, POSITION nPosPlusOne, P
     FENE FENEForces = FENEForce(nMinusOnePos, nPosOld, nPosPlusOne, c);
     POTENTIAL pot = potential(c, PositionArrayNew, i);
 
-    nPosNew.xPos = nPosOld.xPos + (c.h*((FENEForces.FENE_x1 - FENEForces.FENE_x2)/c.eta  + BrownianForces.BrownianForce_x/c.eta));
-//     printf("%.12lf\n", (c.h*((FENEForces.FENE_x1 - FENEForces.FENE_x2)/c.eta  + BrownianForces.BrownianForce_x/c.eta)));
+    nPosNew.xPos = nPosOld.xPos + (c.h*((FENEForces.FENE_x1 - FENEForces.FENE_x2)/c.eta  + (BrownianForces.BrownianForce_x/c.eta)));
+    // printf("%.12lf\n", (c.h*((FENEForces.FENE_x1 - FENEForces.FENE_x2)/c.eta )));
 
-    nPosNew.yPos = nPosOld.yPos + (c.h*((FENEForces.FENE_y1 - FENEForces.FENE_y2)/c.eta  + BrownianForces.BrownianForce_y/c.eta));
+    nPosNew.yPos = nPosOld.yPos + (c.h*((FENEForces.FENE_y1 - FENEForces.FENE_y2)/c.eta  + (BrownianForces.BrownianForce_y/c.eta)));
 
-    nPosNew.zPos = nPosOld.zPos + (c.h*((FENEForces.FENE_z1 - FENEForces.FENE_z2)/c.eta  + BrownianForces.BrownianForce_z/c.eta));
+    nPosNew.zPos = nPosOld.zPos + (c.h*((FENEForces.FENE_z1 - FENEForces.FENE_z2)/c.eta  + (BrownianForces.BrownianForce_z/c.eta)));
     return nPosNew;
 }
 
@@ -321,11 +246,11 @@ POSITION ForcesLast(POSITION nMinusOnePos, POSITION nPosOld, POSITION nPosPlusOn
     FENE FENEForces = FENEForce(nMinusOnePos, nPosOld, nPosPlusOne, c);
     POTENTIAL pot = potential(c, PositionArrayNew, i);
 
-    nPosNew.xPos = nPosOld.xPos + (c.h*((FENEForces.FENE_x1 - FENEForces.FENE_x2)/c.eta + BrownianForces.BrownianForce_x/c.eta));            //x INCREASES by FENE acc (a = F/m) and Brownian acc
+    nPosNew.xPos = nPosOld.xPos + (c.h*((FENEForces.FENE_x1 - FENEForces.FENE_x2)/c.eta + (BrownianForces.BrownianForce_x/c.eta)));
 
-    nPosNew.yPos = nPosOld.yPos + (c.h*((FENEForces.FENE_y1 - FENEForces.FENE_y2)/c.eta + BrownianForces.BrownianForce_y/c.eta));
+    nPosNew.yPos = nPosOld.yPos + (c.h*((FENEForces.FENE_y1 - FENEForces.FENE_y2)/c.eta + (BrownianForces.BrownianForce_y/c.eta)));
 
-    nPosNew.zPos = nPosOld.zPos + (c.h*((FENEForces.FENE_z1 - FENEForces.FENE_z2)/c.eta + BrownianForces.BrownianForce_z/c.eta));
+    nPosNew.zPos = nPosOld.zPos + (c.h*((FENEForces.FENE_z1 - FENEForces.FENE_z2)/c.eta + (BrownianForces.BrownianForce_z/c.eta)));
 
     return nPosNew;
 }
@@ -333,6 +258,9 @@ POSITION ForcesLast(POSITION nMinusOnePos, POSITION nPosOld, POSITION nPosPlusOn
 POTENTIAL potential(CONSTANTS c, POSITION* PositionArrayNew, int i){
     double sepX, sepY, sepZ, epsilon, sigma, potX, potY, potZ;
     POTENTIAL pot;
+
+    sigma = c.BeadRadi;
+    epsilon = 1;
     int j;
     for(j = 0; j < c.N; j++)
     {
