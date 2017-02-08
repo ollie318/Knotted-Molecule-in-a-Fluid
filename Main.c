@@ -231,12 +231,12 @@ POSITION Forces(POSITION nMinusOnePos, POSITION nPosOld, POSITION nPosPlusOne, P
     FENE FENEForces = FENEForce(nMinusOnePos, nPosOld, nPosPlusOne, c);
     POTENTIAL pot = potential(c, PositionArrayNew, i);
 
-    nPosNew.xPos = nPosOld.xPos + (c.h*((FENEForces.FENE_x1 - FENEForces.FENE_x2)/c.eta  + (BrownianForces.BrownianForce_x/c.eta)));
+    nPosNew.xPos = nPosOld.xPos + (c.h*((FENEForces.FENE_x1 - FENEForces.FENE_x2)/c.eta  + (BrownianForces.BrownianForce_x/c.eta) + pot.potentialX/c.eta));
     // printf("%.12lf\n", (c.h*((FENEForces.FENE_x1 - FENEForces.FENE_x2)/c.eta )));
 
-    nPosNew.yPos = nPosOld.yPos + (c.h*((FENEForces.FENE_y1 - FENEForces.FENE_y2)/c.eta  + (BrownianForces.BrownianForce_y/c.eta)));
+    nPosNew.yPos = nPosOld.yPos + (c.h*((FENEForces.FENE_y1 - FENEForces.FENE_y2)/c.eta  + (BrownianForces.BrownianForce_y/c.eta) + pot.potentialX/c.eta));
 
-    nPosNew.zPos = nPosOld.zPos + (c.h*((FENEForces.FENE_z1 - FENEForces.FENE_z2)/c.eta  + (BrownianForces.BrownianForce_z/c.eta)));
+    nPosNew.zPos = nPosOld.zPos + (c.h*((FENEForces.FENE_z1 - FENEForces.FENE_z2)/c.eta  + (BrownianForces.BrownianForce_z/c.eta) + pot.potentialX/c.eta));
     return nPosNew;
 }
 
@@ -246,11 +246,11 @@ POSITION ForcesLast(POSITION nMinusOnePos, POSITION nPosOld, POSITION nPosPlusOn
     FENE FENEForces = FENEForce(nMinusOnePos, nPosOld, nPosPlusOne, c);
     POTENTIAL pot = potential(c, PositionArrayNew, i);
 
-    nPosNew.xPos = nPosOld.xPos + (c.h*((FENEForces.FENE_x1 - FENEForces.FENE_x2)/c.eta + (BrownianForces.BrownianForce_x/c.eta)));
+    nPosNew.xPos = nPosOld.xPos + (c.h*((FENEForces.FENE_x1 - FENEForces.FENE_x2)/c.eta + (BrownianForces.BrownianForce_x/c.eta) + pot.potentialX/c.eta));
 
-    nPosNew.yPos = nPosOld.yPos + (c.h*((FENEForces.FENE_y1 - FENEForces.FENE_y2)/c.eta + (BrownianForces.BrownianForce_y/c.eta)));
+    nPosNew.yPos = nPosOld.yPos + (c.h*((FENEForces.FENE_y1 - FENEForces.FENE_y2)/c.eta + (BrownianForces.BrownianForce_y/c.eta) + pot.potentialX/c.eta));
 
-    nPosNew.zPos = nPosOld.zPos + (c.h*((FENEForces.FENE_z1 - FENEForces.FENE_z2)/c.eta + (BrownianForces.BrownianForce_z/c.eta)));
+    nPosNew.zPos = nPosOld.zPos + (c.h*((FENEForces.FENE_z1 - FENEForces.FENE_z2)/c.eta + (BrownianForces.BrownianForce_z/c.eta) + pot.potentialX/c.eta));
 
     return nPosNew;
 }
@@ -261,6 +261,11 @@ POTENTIAL potential(CONSTANTS c, POSITION* PositionArrayNew, int i){
 
     sigma = c.BeadRadi;
     epsilon = 1;
+
+    pot.potentialX = 0.0;
+    pot.potentialY = 0.0;
+    pot.potentialZ = 0.0;
+
     int j;
     for(j = 0; j < c.N; j++)
     {
@@ -269,9 +274,9 @@ POTENTIAL potential(CONSTANTS c, POSITION* PositionArrayNew, int i){
         sepY = PositionArrayNew[i].yPos - PositionArrayNew[j].yPos;
         sepZ = PositionArrayNew[i].zPos - PositionArrayNew[j].zPos;
 
-        potX = ((24*epsilon)/sigma) * (2*pow((sigma/sepX), 13) - 2*pow((sigma/sepX), 7));
-        potY = ((24*epsilon)/sigma) * (2*pow((sigma/sepY), 13) - 2*pow((sigma/sepY), 7));
-        potZ = ((24*epsilon)/sigma) * (2*pow((sigma/sepZ), 13) - 2*pow((sigma/sepZ), 7));
+        potX = -5*(epsilon/sigma) * pow(sigma, 5)/pow(sepX, 6);
+        potY = -5*(epsilon/sigma) * pow(sigma, 5)/pow(sepY, 6);
+        potZ = -5*(epsilon/sigma) * pow(sigma, 5)/pow(sepZ, 6);
 
         pot.potentialX += potX;
         pot.potentialY += potY;
