@@ -56,11 +56,11 @@ int timestep(CONSTANTS c, POSITION* PositionArrayOld, POSITION* PositionArrayNew
     PositionArrayNew[0].zPos = 0;
 
     for(i = 1; i < c.N-1; i ++) {
-        PositionArrayNew[i] = Forces(PositionArrayOld[i-1], PositionArrayOld[i], PositionArrayOld[i+1], PositionArrayNew[i], PositionArrayNew, c, i);
+        PositionArrayNew[i] = Forces(PositionArrayOld[i-1], PositionArrayOld[i], PositionArrayOld[i+1], PositionArrayNew[i], PositionArrayOld, c, i);
 
     }
 
-    PositionArrayNew[c.N-1] = ForcesLast(PositionArrayOld[c.N-2], PositionArrayOld[c.N-1], PositionArrayOld[c.N-1], PositionArrayNew[i], PositionArrayNew, c, i);
+    PositionArrayNew[c.N-1] = ForcesLast(PositionArrayOld[c.N-2], PositionArrayOld[c.N-1], PositionArrayOld[c.N-1], PositionArrayNew[i], PositionArrayOld, c, i);
 
     return EXIT_SUCCESS;
 }
@@ -225,11 +225,11 @@ BROWNIAN Brownian(CONSTANTS c){
     return BrownianForces;
 }
 
-POSITION Forces(POSITION nMinusOnePos, POSITION nPosOld, POSITION nPosPlusOne, POSITION nPosNew, POSITION* PositionArrayNew,  CONSTANTS c, int i){
+POSITION Forces(POSITION nMinusOnePos, POSITION nPosOld, POSITION nPosPlusOne, POSITION nPosNew, POSITION* PositionArrayOld,  CONSTANTS c, int i){
 
     BROWNIAN BrownianForces = Brownian(c);
     FENE FENEForces = FENEForce(nMinusOnePos, nPosOld, nPosPlusOne, c);
-    POTENTIAL pot = potential(c, PositionArrayNew, i);
+    POTENTIAL pot = potential(c, PositionArrayOld, i);
 
     nPosNew.xPos = nPosOld.xPos + (c.h*((FENEForces.FENE_x1 - FENEForces.FENE_x2)/c.eta  + (BrownianForces.BrownianForce_x/c.eta) + pot.potentialX/c.eta));
     // printf("%.12lf\n", (c.h*((FENEForces.FENE_x1 - FENEForces.FENE_x2)/c.eta )));
@@ -240,11 +240,11 @@ POSITION Forces(POSITION nMinusOnePos, POSITION nPosOld, POSITION nPosPlusOne, P
     return nPosNew;
 }
 
-POSITION ForcesLast(POSITION nMinusOnePos, POSITION nPosOld, POSITION nPosPlusOne, POSITION nPosNew, POSITION* PositionArrayNew, CONSTANTS c, int i){
+POSITION ForcesLast(POSITION nMinusOnePos, POSITION nPosOld, POSITION nPosPlusOne, POSITION nPosNew, POSITION* PositionArrayOld, CONSTANTS c, int i){
 
     BROWNIAN BrownianForces = Brownian(c);
     FENE FENEForces = FENEForce(nMinusOnePos, nPosOld, nPosPlusOne, c);
-    POTENTIAL pot = potential(c, PositionArrayNew, i);
+    POTENTIAL pot = potential(c, PositionArrayOld, i);
 
     nPosNew.xPos = nPosOld.xPos + (c.h*((FENEForces.FENE_x1 - FENEForces.FENE_x2)/c.eta + (BrownianForces.BrownianForce_x/c.eta) + pot.potentialX/c.eta));
 
@@ -255,12 +255,12 @@ POSITION ForcesLast(POSITION nMinusOnePos, POSITION nPosOld, POSITION nPosPlusOn
     return nPosNew;
 }
 
-POTENTIAL potential(CONSTANTS c, POSITION* PositionArrayNew, int i){
+POTENTIAL potential(CONSTANTS c, POSITION* PositionArrayOld, int i){
     double sepX, sepY, sepZ, epsilon, sigma, potX, potY, potZ;
     POTENTIAL pot;
 
-    sigma = c.BeadRadi;
-    epsilon = 1;
+    sigma = 2 * c.BeadRadi;                                           //r where attraction/repulsion changes
+    epsilon = 100;                                                    //Depth of the weakly attractive well for atom, 100 not accurate
 
     pot.potentialX = 0.0;
     pot.potentialY = 0.0;
@@ -270,13 +270,13 @@ POTENTIAL potential(CONSTANTS c, POSITION* PositionArrayNew, int i){
     for(j = 0; j < c.N; j++)
     {
 
-        sepX = PositionArrayNew[i].xPos - PositionArrayNew[j].xPos;
-        sepY = PositionArrayNew[i].yPos - PositionArrayNew[j].yPos;
-        sepZ = PositionArrayNew[i].zPos - PositionArrayNew[j].zPos;
+        sepX = PositionArrayOld[i].xPos - PositionArrayOld[j].xPos;
+        sepY = PositionArrayOld[i].yPos - PositionArrayOld[j].yPos;
+        sepZ = PositionArrayOld[i].zPos - PositionArrayOld[j].zPos;
 
-        potX = -5*(epsilon/sigma) * pow(sigma, 5)/pow(sepX, 6);
-        potY = -5*(epsilon/sigma) * pow(sigma, 5)/pow(sepY, 6);
-        potZ = -5*(epsilon/sigma) * pow(sigma, 5)/pow(sepZ, 6);
+        potX = -5*(epsilon) * pow(sigma, 5)/pow(sepX, 6);
+        potY = -5*(epsilon) * pow(sigma, 5)/pow(sepY, 6);
+        potZ = -5*(epsilon) * pow(sigma, 5)/pow(sepZ, 6);
 
         pot.potentialX += potX;
         pot.potentialY += potY;
