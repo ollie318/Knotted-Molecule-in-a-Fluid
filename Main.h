@@ -58,9 +58,9 @@ double DragForce (CONSTANTS c);
 
 BROWNIAN Brownian(CONSTANTS c);
 
-POSITION Forces(POSITION nMinusOnePos, POSITION nPosOld, POSITION nPosPlusOne, POSITION nPosNew, POSITION* PositionArrayNew,  CONSTANTS c, int i);		//Gives new pos from sum forces
+POSITION Forces(POSITION nMinusOnePos, POSITION nPosOld, POSITION nPosPlusOne, POSITION nPosNew, POSITION* PositionArrayOld,  CONSTANTS c, int i);		//Gives new pos from sum forces
 
-POSITION ForcesLast(POSITION nMinusOnePos, POSITION nPosOld, POSITION nPosPlusOne, POSITION nPosNew, POSITION* PositionArrayNew, CONSTANTS c, int i);
+POSITION ForcesLast(POSITION nMinusOnePos, POSITION nPosOld, POSITION nPosPlusOne, POSITION nPosNew, POSITION* PositionArrayOld, CONSTANTS c, int i);
 
 
 int initialise(CONSTANTS* c, POSITION** PositionArrayOld, POSITION** PositionArrayNew, POSITION** frames);			//Sets constants, allocates memory for array of pointers
@@ -73,7 +73,7 @@ int writeValues(CONSTANTS c, POSITION* frames);																		//Writes all be
 
 int finalise(CONSTANTS* c, POSITION** PositionArrayOld, POSITION** PositionArrayNew, POSITION** frames);			//frees memory
 
-POTENTIAL potential(CONSTANTS c, POSITION* PositionArrayNew, int i);																//Lennard-Jones Potential
+POTENTIAL potential(CONSTANTS c, POSITION* PositionArrayOld, int i);																//Lennard-Jones Potential
 
 
 #endif
