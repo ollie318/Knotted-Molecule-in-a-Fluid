@@ -48,7 +48,7 @@ double GenRandDoubleMT(CONSTANTS c);                   //Note: not truly random,
 
 ANGLES CalcNextAngles(CONSTANTS c);
 
-int CalcKnotPos(CONSTANTS c, POSITION* PositionArrayNew, POSITION nMinusOnePos, int i);
+int CalcKnotPos(CONSTANTS c, POSITION* PositionArrayOld);
 
 TWO_GAUSS BoxMullerTrans (CONSTANTS c, double input_1, double input_2);
 

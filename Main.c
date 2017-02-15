@@ -68,7 +68,7 @@ int timestep(CONSTANTS c, POSITION* PositionArrayOld, POSITION* PositionArrayNew
 int initialise(CONSTANTS* c, POSITION** PositionArrayOld, POSITION** PositionArrayNew, POSITION** frames)
 {
     // array constants
-    c->N = 45;
+    c->N = 60;
     c->maxIters = 10000;
 
     c->BeadRadi = 100E-9;                                                //diameter of polystyrene
@@ -108,11 +108,13 @@ int initialise(CONSTANTS* c, POSITION** PositionArrayOld, POSITION** PositionArr
     LastBondAngles.phi = 0;
     LastBondAngles.theta = pi/2;
 
-    int i;
-    for (i = 2; i < c->N; i++){
-//         CalcKnotPos(*c, &((*PositionArrayOld)[i]), (*PositionArrayOld)[i-1], i);
-        CalcNextBallPos((*PositionArrayOld)[i-1], &((*PositionArrayOld)[i]), LastBondAngles, *c);
-    }
+    // int i;
+    //
+    // for (i = 2; i < c->N; i++){
+    //     CalcNextBallPos((*PositionArrayOld)[i-1], &((*PositionArrayOld)[i]), LastBondAngles, *c);
+    // }
+
+    CalcKnotPos(*c, *PositionArrayOld);
 
     return 0;
 }
@@ -231,12 +233,12 @@ POSITION Forces(POSITION nMinusOnePos, POSITION nPosOld, POSITION nPosPlusOne, P
     FENE FENEForces = FENEForce(nMinusOnePos, nPosOld, nPosPlusOne, c);
     POTENTIAL pot = potential(c, PositionArrayOld, i);
 
-    nPosNew.xPos = nPosOld.xPos + (c.h*((FENEForces.FENE_x1 - FENEForces.FENE_x2)/c.eta  + (BrownianForces.BrownianForce_x/c.eta) + pot.potentialX/c.eta));
+    nPosNew.xPos = nPosOld.xPos + (c.h*((FENEForces.FENE_x1 - FENEForces.FENE_x2)/c.eta  + (BrownianForces.BrownianForce_x/c.eta)));
     // printf("%.12lf\n", (c.h*((FENEForces.FENE_x1 - FENEForces.FENE_x2)/c.eta )));
 
-    nPosNew.yPos = nPosOld.yPos + (c.h*((FENEForces.FENE_y1 - FENEForces.FENE_y2)/c.eta  + (BrownianForces.BrownianForce_y/c.eta) + pot.potentialX/c.eta));
+    nPosNew.yPos = nPosOld.yPos + (c.h*((FENEForces.FENE_y1 - FENEForces.FENE_y2)/c.eta  + (BrownianForces.BrownianForce_y/c.eta)));
 
-    nPosNew.zPos = nPosOld.zPos + (c.h*((FENEForces.FENE_z1 - FENEForces.FENE_z2)/c.eta  + (BrownianForces.BrownianForce_z/c.eta) + pot.potentialX/c.eta));
+    nPosNew.zPos = nPosOld.zPos + (c.h*((FENEForces.FENE_z1 - FENEForces.FENE_z2)/c.eta  + (BrownianForces.BrownianForce_z/c.eta)));
     return nPosNew;
 }
 
@@ -246,11 +248,11 @@ POSITION ForcesLast(POSITION nMinusOnePos, POSITION nPosOld, POSITION nPosPlusOn
     FENE FENEForces = FENEForce(nMinusOnePos, nPosOld, nPosPlusOne, c);
     POTENTIAL pot = potential(c, PositionArrayOld, i);
 
-    nPosNew.xPos = nPosOld.xPos + (c.h*((FENEForces.FENE_x1 - FENEForces.FENE_x2)/c.eta + (BrownianForces.BrownianForce_x/c.eta) + pot.potentialX/c.eta));
+    nPosNew.xPos = nPosOld.xPos + (c.h*((FENEForces.FENE_x1 - FENEForces.FENE_x2)/c.eta + (BrownianForces.BrownianForce_x/c.eta)));
 
-    nPosNew.yPos = nPosOld.yPos + (c.h*((FENEForces.FENE_y1 - FENEForces.FENE_y2)/c.eta + (BrownianForces.BrownianForce_y/c.eta) + pot.potentialX/c.eta));
+    nPosNew.yPos = nPosOld.yPos + (c.h*((FENEForces.FENE_y1 - FENEForces.FENE_y2)/c.eta + (BrownianForces.BrownianForce_y/c.eta)));
 
-    nPosNew.zPos = nPosOld.zPos + (c.h*((FENEForces.FENE_z1 - FENEForces.FENE_z2)/c.eta + (BrownianForces.BrownianForce_z/c.eta) + pot.potentialX/c.eta));
+    nPosNew.zPos = nPosOld.zPos + (c.h*((FENEForces.FENE_z1 - FENEForces.FENE_z2)/c.eta + (BrownianForces.BrownianForce_z/c.eta)));
 
     return nPosNew;
 }
@@ -286,42 +288,44 @@ POTENTIAL potential(CONSTANTS c, POSITION* PositionArrayOld, int i){
     return pot;
 }
 
-int CalcKnotPos(CONSTANTS c, POSITION* PositionArrayNew, POSITION nMinusOnePos, int i){
+int CalcKnotPos(CONSTANTS c, POSITION* PositionArrayOld){
 
-    double phi_knot = 0;
-    double p, q, r, TestxPos = 0.0, TestyPos = 0.0, TestzPos = 0.0 ;					//variables in knot eq, wiki
-    p = 4.0;
-    q = 3.0;							//For 8_19 knot
+    FILE *knot;
+    knot = fopen("8_19_32beads.txt", "r");
+    int beadnumber;
+    double TestxPos = 0.0, TestyPos = 0.0, TestzPos = 0.0;
 
-    double bondlength = 0.0;
+    if(knot != NULL){
+      int i = 0;
+      for(i = 0; i < c.N; i++){
+          if((i >= 0 && i < 15) || (i > 47 && i < c.N )){
+            if(i >= 0 && i < 15){
+              PositionArrayOld[i].xPos = i * (c.Q_0 * 0.8);
+              PositionArrayOld[i].yPos = 0.0;
+              PositionArrayOld[i].zPos = 0.0;
+            }
+            else{
+              PositionArrayOld[i].xPos = (i - 32) * (c.Q_0 * 0.8);
+              PositionArrayOld[i].yPos = 0.0;
+              PositionArrayOld[i].zPos = 0.0;
+            }
+          }
 
-    phi_knot = 0;
+          else{
+              fscanf(knot, "%d\t%lf\t%lf\t%lf", &beadnumber, &TestxPos, &TestyPos, &TestzPos);
+              PositionArrayOld[i].xPos = 15 * (c.Q_0 * 0.8) + TestxPos;
+              PositionArrayOld[i].yPos = TestyPos;
+              PositionArrayOld[i].zPos = TestzPos;
+          }
+      }
 
-    if((i > 1 && i < 15) || (i > 30 && i < c.N )){
-        PositionArrayNew[i].xPos = nMinusOnePos.xPos + (c.Q_0 * 0.8);
-        PositionArrayNew[i].yPos = nMinusOnePos.yPos + (c.Q_0 * 0.8);
-        PositionArrayNew[i].zPos = nMinusOnePos.zPos + (c.Q_0 * 0.8);
+      return EXIT_SUCCESS;
     }
 
-    else{
-        while(bondlength < c.Q_0*0.8){
-
-            phi_knot += 0.01 ;
-            r = cos(q * phi_knot) + 2;
-
-            TestxPos = (r * cos(p * phi_knot))/3000000;
-            TestyPos = (r * sin(p * phi_knot))/30000000;
-            TestzPos = (- sin(q * phi_knot))/30000000;
-
-            bondlength = sqrt(pow(TestxPos - PositionArrayNew[i-1].xPos, 2) + pow(TestyPos - PositionArrayNew[i-1].yPos, 2) + pow(TestzPos - PositionArrayNew[i-1].zPos, 2));
-
-        }
-
-        PositionArrayNew[i].xPos = nMinusOnePos.xPos + (c.Q_0 * 0.8);
-        PositionArrayNew[i].yPos = TestyPos;
-        PositionArrayNew[i].zPos = TestzPos;
+    else {
+      printf("Error opening file\n");
+      exit(EXIT_FAILURE);
     }
-    return EXIT_SUCCESS;
 }
 
 int writeValues(CONSTANTS c, POSITION* frames)
