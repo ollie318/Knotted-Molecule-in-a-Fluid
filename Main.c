@@ -74,7 +74,7 @@ int initialise(CONSTANTS* c, POSITION** PositionArrayOld, POSITION** PositionArr
     c->BeadRadi = 100E-9;                                                //diameter of polystyrene
     c->FluidViscos = 2;                                             //Fluid viscosity
     c->FlowVel = 13.0;                                                    //Fluid velocity, NOT relative velocity as needed for Stokes Law
-    c->h = 0.0001;                                                          //Time step
+    c->h = 0.001;                                                          //Time step
     c->T = 298;                                                          //Temperature in Kelvin
     c->D = (Boltzmann * c->T) / (6 * pi * c->FluidViscos * c->BeadRadi);    //Diffusion coefficient
     c->eta = 6*pi*c->FluidViscos*c->BeadRadi;
@@ -267,7 +267,7 @@ POTENTIAL potential(CONSTANTS c, POSITION* PositionArrayOld, int i){
     pot.potentialX = 0.0;
     pot.potentialY = 0.0;
     pot.potentialZ = 0.0;
-    i = 2;
+
     int j;
     for(j = 0; j < c.N; j++)
     {
@@ -289,10 +289,9 @@ POTENTIAL potential(CONSTANTS c, POSITION* PositionArrayOld, int i){
         pot.potentialX += potX;
         pot.potentialY += potY;
         pot.potentialZ += potZ;
+
         }
-        // printf("%.19lf\n", potX);
     }
-    // exit(0);
     return pot;
 }
 
