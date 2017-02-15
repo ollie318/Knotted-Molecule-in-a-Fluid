@@ -233,12 +233,12 @@ POSITION Forces(POSITION nMinusOnePos, POSITION nPosOld, POSITION nPosPlusOne, P
     FENE FENEForces = FENEForce(nMinusOnePos, nPosOld, nPosPlusOne, c);
     POTENTIAL pot = potential(c, PositionArrayOld, i);
 
-    nPosNew.xPos = nPosOld.xPos + (c.h*((FENEForces.FENE_x1 - FENEForces.FENE_x2)/c.eta  + (BrownianForces.BrownianForce_x/c.eta)));
+    nPosNew.xPos = nPosOld.xPos + (c.h*((FENEForces.FENE_x1 - FENEForces.FENE_x2)/c.eta  + (BrownianForces.BrownianForce_x/c.eta) + (pot.potentialX/c.eta)));
     // printf("%.12lf\n", (c.h*((FENEForces.FENE_x1 - FENEForces.FENE_x2)/c.eta )));
 
-    nPosNew.yPos = nPosOld.yPos + (c.h*((FENEForces.FENE_y1 - FENEForces.FENE_y2)/c.eta  + (BrownianForces.BrownianForce_y/c.eta)));
+    nPosNew.yPos = nPosOld.yPos + (c.h*((FENEForces.FENE_y1 - FENEForces.FENE_y2)/c.eta  + (BrownianForces.BrownianForce_y/c.eta) + (pot.potentialX/c.eta)));
 
-    nPosNew.zPos = nPosOld.zPos + (c.h*((FENEForces.FENE_z1 - FENEForces.FENE_z2)/c.eta  + (BrownianForces.BrownianForce_z/c.eta)));
+    nPosNew.zPos = nPosOld.zPos + (c.h*((FENEForces.FENE_z1 - FENEForces.FENE_z2)/c.eta  + (BrownianForces.BrownianForce_z/c.eta) + (pot.potentialX/c.eta)));
     return nPosNew;
 }
 
@@ -262,7 +262,7 @@ POTENTIAL potential(CONSTANTS c, POSITION* PositionArrayOld, int i){
     POTENTIAL pot;
 
     sigma = 2 * c.BeadRadi;                                           //r where attraction/repulsion changes
-    epsilon = 100;                                                    //Depth of the weakly attractive well for atom, 100 not accurate
+    epsilon = 1.0;                                                    //Depth of the weakly attractive well for atom, 100 not accurate
 
     pot.potentialX = 0.0;
     pot.potentialY = 0.0;
@@ -271,20 +271,26 @@ POTENTIAL potential(CONSTANTS c, POSITION* PositionArrayOld, int i){
     int j;
     for(j = 0; j < c.N; j++)
     {
-
+        if(j == i){
+          potX = 0.0;
+          potY = 0.0;
+          potZ = 0.0;
+        }
+        else{
         sepX = PositionArrayOld[i].xPos - PositionArrayOld[j].xPos;
         sepY = PositionArrayOld[i].yPos - PositionArrayOld[j].yPos;
         sepZ = PositionArrayOld[i].zPos - PositionArrayOld[j].zPos;
 
-        potX = -5*(epsilon) * pow(sigma, 5)/pow(sepX, 6);
-        potY = -5*(epsilon) * pow(sigma, 5)/pow(sepY, 6);
-        potZ = -5*(epsilon) * pow(sigma, 5)/pow(sepZ, 6);
+        potX = (4*(epsilon) * (pow(sigma, 4)/pow(sepX, 5)))/AvogadroNum;
+        potY = (4*(epsilon) * (pow(sigma, 4)/pow(sepY, 5)))/AvogadroNum;
+        potZ = (4*(epsilon) * (pow(sigma, 4)/pow(sepZ, 5)))/AvogadroNum;
 
         pot.potentialX += potX;
         pot.potentialY += potY;
         pot.potentialZ += potZ;
+      }
+        // printf("%.19lf\n", potX);
     }
-
     return pot;
 }
 
