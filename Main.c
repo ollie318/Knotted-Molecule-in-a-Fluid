@@ -258,11 +258,11 @@ POSITION ForcesLast(POSITION nMinusOnePos, POSITION nPosOld, POSITION nPosPlusOn
 }
 
 POTENTIAL potential(CONSTANTS c, POSITION* PositionArrayOld, int i){
-    double sepX, sepY, sepZ, epsilon, sigma, potX, potY, potZ;
+    double sepX, sepY, sepZ, TotalSep, epsilon, sigma, potX, potY, potZ;
     POTENTIAL pot;
 
     sigma = 2 * c.BeadRadi;                                           //r where attraction/repulsion changes
-    epsilon = 1.0;                                                    //Depth of the weakly attractive well for atom, 100 not accurate
+    epsilon = 1.0;                                                    //Depth of the weakly attractive well for atom
 
     pot.potentialX = 0.0;
     pot.potentialY = 0.0;
@@ -281,10 +281,11 @@ POTENTIAL potential(CONSTANTS c, POSITION* PositionArrayOld, int i){
         sepX = PositionArrayOld[i].xPos - PositionArrayOld[j].xPos;
         sepY = PositionArrayOld[i].yPos - PositionArrayOld[j].yPos;
         sepZ = PositionArrayOld[i].zPos - PositionArrayOld[j].zPos;
+        TotalSep = sqrt( sepX*sepX + sepY*sepY + sepZ*sepZ );
 
-        potX = (4*(epsilon) * (pow(sigma, 4)/pow(sepX, 5)))/AvogadroNum;
-        potY = (4*(epsilon) * (pow(sigma, 4)/pow(sepY, 5)))/AvogadroNum;
-        potZ = (4*(epsilon) * (pow(sigma, 4)/pow(sepZ, 5)))/AvogadroNum;
+        potX = (4*(epsilon) * sepX * (pow(sigma, 4)/pow(TotalSep, 6)))/AvogadroNum;
+        potY = (4*(epsilon) * sepY * (pow(sigma, 4)/pow(TotalSep, 6)))/AvogadroNum;
+        potZ = (4*(epsilon) * sepZ * (pow(sigma, 4)/pow(TotalSep, 6)))/AvogadroNum;
 
         pot.potentialX += potX;
         pot.potentialY += potY;
