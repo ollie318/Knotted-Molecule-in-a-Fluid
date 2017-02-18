@@ -50,7 +50,7 @@ ANGLES CalcNextAngles(CONSTANTS c);
 
 int CalcKnotPos(CONSTANTS c, POSITION* PositionArrayOld);
 
-TWO_GAUSS BoxMullerTrans (CONSTANTS c, double input_1, double input_2);
+double GenGaussRand ();
 
 FENE FENEForce(POSITION nMinusOnePos, POSITION nPos, POSITION nPosPlusOne, CONSTANTS c);
 
