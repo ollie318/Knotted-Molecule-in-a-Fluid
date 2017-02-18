@@ -178,17 +178,18 @@ double GenRandDouble(double minDoub, double maxDoub)
 // }
 
 
-TWO_GAUSS BoxMullerTrans (CONSTANTS c, double input_1, double input_2)
+double GenGaussRand ()
 {
-    TWO_GAUSS OutputGauss;
+    double OutputGauss_1;
 
-    OutputGauss.Gauss_1 = sqrt(-2 * log(input_1) ) * cos(2 * pi * input_2);          //If using a standard Gaussian
-    OutputGauss.Gauss_1 = OutputGauss.Gauss_1 * sqrt(2 * c.D * c.h);                 //Multiply by standard deviation and add mean (0) for our Gaussian
+    double input_1 = GenRandDouble(-1, 1);
+    double input_2 = GenRandDouble(-1, 1);
 
-    OutputGauss.Gauss_2 =sqrt(-2 * log(input_1) ) * sin(2 * pi * input_2);
-    OutputGauss.Gauss_2 = OutputGauss.Gauss_2 * sqrt(2 * c.D * c.h);
+    OutputGauss_1 = sqrt(-2 * log(input_1) ) * cos(2 * pi * input_2);          //If using a standard Gaussian
 
-    return OutputGauss;
+    /*OutputGauss.Gauss_2 =sqrt(-2 * log(input_1) ) * sin(2 * pi * input_2);*/
+
+    return OutputGauss_1;
 }
 
 
@@ -220,9 +221,9 @@ FENE FENEForce(POSITION nMinusOnePos, POSITION nPos, POSITION nPosPlusOne, CONST
 BROWNIAN Brownian(CONSTANTS c){
     BROWNIAN BrownianForces;
 
-    BrownianForces.BrownianForce_x = sqrt((6 * Boltzmann * c.T*c.eta)/c.h) * GenRandDouble(-1, 1);            //random number from 1 to -1
-    BrownianForces.BrownianForce_y = sqrt((6 * Boltzmann * c.T*c.eta)/c.h) * GenRandDouble(-1, 1);			  //will need Gaussian dist number -1 to 1
-    BrownianForces.BrownianForce_z = sqrt((6 * Boltzmann * c.T*c.eta)/c.h) * GenRandDouble(-1, 1);            //On the scale E-2
+    BrownianForces.BrownianForce_x = sqrt((6 * Boltzmann * c.T*c.eta)/c.h) * GenGaussRand();            //random number from 1 to -1, Gaussian distribution
+    BrownianForces.BrownianForce_y = sqrt((6 * Boltzmann * c.T*c.eta)/c.h) * GenGaussRand();			  
+    BrownianForces.BrownianForce_z = sqrt((6 * Boltzmann * c.T*c.eta)/c.h) * GenGaussRand();            //On the scale E-2
 
     return BrownianForces;
 }
