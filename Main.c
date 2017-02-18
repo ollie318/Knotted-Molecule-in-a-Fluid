@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <math.h>
 #include "Main.h"
+#include "random.h"
 // #include "mtwist.h"
 
 #define Boltzmann 1.38064852E-23
