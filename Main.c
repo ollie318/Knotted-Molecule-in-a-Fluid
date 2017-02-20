@@ -18,7 +18,7 @@ int main(int argc, char *argv[]){
     POSITION* frames;
     char* paramfile = NULL;
 
-    if(argc != 2){
+    if(argc != 1){
       printf("Please use: ./a.out <paramfile>\n");
     }
     else paramfile = argv[1];
@@ -122,38 +122,36 @@ int CalcKnotPos(CONSTANTS c, POSITION* PositionArrayOld){
     FILE *knot;
     knot = fopen("8_19_32beads.txt", "r");
 
+    if(knot == NULL) die("cannot find knot coordinate file", __LINE__, __FILE__);
+
     int beadnumber;
     double TestxPos = 0.0, TestyPos = 0.0, TestzPos = 0.0;
 
-    if(knot != NULL){
-      int i = 0;
-      for(i = 0; i < c.N; i++){
-          if((i >= 0 && i < 15) || (i > 47 && i < c.N )){
-            if(i >= 0 && i < 15){
-              PositionArrayOld[i].xPos = i * (c.Q_0 * 0.8);
-              PositionArrayOld[i].yPos = 0.0;
-              PositionArrayOld[i].zPos = 0.0;
-            }
-            else{
-              PositionArrayOld[i].xPos = (i - 32) * (c.Q_0 * 0.8);
-              PositionArrayOld[i].yPos = 0.0;
-              PositionArrayOld[i].zPos = 0.0;
-            }
+    int i = 0;
+    for(i = 0; i < c.N; i++){
+        if((i >= 0 && i < 15) || (i > 47 && i < c.N )){
+          if(i >= 0 && i < 15){
+            PositionArrayOld[i].xPos = i * (c.Q_0 * 0.8);
+            PositionArrayOld[i].yPos = 0.0;
+            PositionArrayOld[i].zPos = 0.0;
           }
-
           else{
-              fscanf(knot, "%d\t%lf\t%lf\t%lf", &beadnumber, &TestxPos, &TestyPos, &TestzPos);
-              PositionArrayOld[i].xPos = 15 * (c.Q_0 * 0.8) + TestxPos;
-              PositionArrayOld[i].yPos = TestyPos;
-              PositionArrayOld[i].zPos = TestzPos;
+            PositionArrayOld[i].xPos = (i - 32) * (c.Q_0 * 0.8);
+            PositionArrayOld[i].yPos = 0.0;
+            PositionArrayOld[i].zPos = 0.0;
           }
-      }
+        }
 
-      return EXIT_SUCCESS;
+        else{
+            fscanf(knot, "%d\t%lf\t%lf\t%lf", &beadnumber, &TestxPos, &TestyPos, &TestzPos);
+            PositionArrayOld[i].xPos = 15 * (c.Q_0 * 0.8) + TestxPos;
+            PositionArrayOld[i].yPos = TestyPos;
+            PositionArrayOld[i].zPos = TestzPos;
+        }
     }
-    else {
-      die("cannot find knot coordinate file", __LINE__, __FILE__);
-    }
+
+    return EXIT_SUCCESS;
+
 }
 
 int updateFrames(CONSTANTS c, int CurrentFrame, POSITION* frames, POSITION* positions){
@@ -249,9 +247,10 @@ BROWNIAN Brownian(CONSTANTS c){
 
 double GenGaussRand(){
     double OutputGauss_1;
-
-    double input_1 = ran2(long *idum);
-    double input_2 = ran2(long *idum);
+    long a = -793648;
+    long *b = &a;
+    double input_1 = ran2(b);
+    double input_2 = ran2(b);
 
     OutputGauss_1 = sqrt(-2 * log(input_1) ) * cos(2 * pi * input_2);          //If using a standard Gaussian
 
@@ -334,7 +333,7 @@ int finalise(CONSTANTS* c, POSITION** PositionArrayOld, POSITION** PositionArray
 }
 
 void die(const char* message, const int line, const char* file){
-    fprintf(stderr, "%s. \nLine: %d, File: %s\n", message, line, file);
+    fprintf(stderr, "%s. \nLine: %d\t File: %s\n", message, line, file);
     fflush(stderr);
     exit(EXIT_FAILURE);
 }
