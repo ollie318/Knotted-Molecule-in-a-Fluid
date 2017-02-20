@@ -3,7 +3,6 @@
 #include <math.h>
 #include "Main.h"
 #include "random.h"
-// #include "mtwist.h"
 
 #define Boltzmann 1.38064852E-23
 #define pi 3.1415926535897932
@@ -37,37 +36,7 @@ int main(void)
     return 0;
 }
 
-int updateFrames(CONSTANTS c, int CurrentFrame, POSITION* frames, POSITION* positions)
-{
-    int i;
-    for (i = 0; i < c.N; i++) {
-        frames[CurrentFrame*c.N + i] = positions[i];
-    }
-
-    return EXIT_SUCCESS;
-}
-
-int timestep(CONSTANTS c, POSITION* PositionArrayOld, POSITION* PositionArrayNew)
-{
-
-    int i;
-
-    PositionArrayNew[0].xPos = 0;
-    PositionArrayNew[0].yPos = 0;
-    PositionArrayNew[0].zPos = 0;
-
-    for(i = 1; i < c.N-1; i ++) {
-        PositionArrayNew[i] = Forces(PositionArrayOld[i-1], PositionArrayOld[i], PositionArrayOld[i+1], PositionArrayNew[i], PositionArrayOld, c, i);
-
-    }
-
-    PositionArrayNew[c.N-1] = ForcesLast(PositionArrayOld[c.N-2], PositionArrayOld[c.N-1], PositionArrayOld[c.N-1], PositionArrayNew[i], PositionArrayOld, c, i);
-
-    return EXIT_SUCCESS;
-}
-
-int initialise(CONSTANTS* c, POSITION** PositionArrayOld, POSITION** PositionArrayNew, POSITION** frames)
-{
+int initialise(CONSTANTS* c, POSITION** PositionArrayOld, POSITION** PositionArrayNew, POSITION** frames){
     // array constants
     c->N = 60;
     c->maxIters = 10000;
@@ -105,97 +74,108 @@ int initialise(CONSTANTS* c, POSITION** PositionArrayOld, POSITION** PositionArr
     (*PositionArrayOld)[1].yPos = (*PositionArrayOld)[0].yPos + (0.8 * c->Q_0);
     (*PositionArrayOld)[1].zPos = (*PositionArrayOld)[0].zPos + (0.8 * c->Q_0);
 
-    ANGLES LastBondAngles;
-    LastBondAngles.phi = 0;
-    LastBondAngles.theta = pi/2;
-
-    // int i;
-    //
-    // for (i = 2; i < c->N; i++){
-    //     CalcNextBallPos((*PositionArrayOld)[i-1], &((*PositionArrayOld)[i]), LastBondAngles, *c);
-    // }
-
-    CalcKnotPos(*c, *PositionArrayOld);
-
-    return 0;
-}
-
-int CalcNextBallPos(POSITION nMinusOnePos, POSITION* nPos, ANGLES LastAngles, CONSTANTS c)
-{
-
-    nPos -> xPos = nMinusOnePos.xPos + ( c.Q_0 * 0.8 );
-    nPos -> yPos = nMinusOnePos.yPos + ( c.Q_0 * 0.8 );
-    nPos -> zPos = nMinusOnePos.zPos + ( c.Q_0 * 0.8 );
+    CalcKnotPos(*c, &PositionArrayOld);
 
     return EXIT_SUCCESS;
 }
 
-ANGLES CalcNextAngles(CONSTANTS c)
-{
-    ANGLES NewAngles;
-    NewAngles.theta = GenRandDouble(-pi/4, pi/4);
-    NewAngles.phi = GenRandDouble(-pi, pi);
+int CalcKnotPos(CONSTANTS c, POSITION* PositionArrayOld){
 
-    return NewAngles;
+    FILE *knot;
+    knot = fopen("8_19_32beads.txt", "r");
+    int beadnumber;
+    double TestxPos = 0.0, TestyPos = 0.0, TestzPos = 0.0;
+
+    if(knot != NULL){
+      int i = 0;
+      for(i = 0; i < c.N; i++){
+          if((i >= 0 && i < 15) || (i > 47 && i < c.N )){
+            if(i >= 0 && i < 15){
+              PositionArrayOld[i].xPos = i * (c.Q_0 * 0.8);
+              PositionArrayOld[i].yPos = 0.0;
+              PositionArrayOld[i].zPos = 0.0;
+            }
+            else{
+              PositionArrayOld[i].xPos = (i - 32) * (c.Q_0 * 0.8);
+              PositionArrayOld[i].yPos = 0.0;
+              PositionArrayOld[i].zPos = 0.0;
+            }
+          }
+
+          else{
+              fscanf(knot, "%d\t%lf\t%lf\t%lf", &beadnumber, &TestxPos, &TestyPos, &TestzPos);
+              PositionArrayOld[i].xPos = 15 * (c.Q_0 * 0.8) + TestxPos;
+              PositionArrayOld[i].yPos = TestyPos;
+              PositionArrayOld[i].zPos = TestzPos;
+          }
+      }
+
+      return EXIT_SUCCESS;
+    }
+    else {
+      printf("Error opening file\n");
+      exit(0);
+    }
 }
 
-double GenRandDouble(double minDoub, double maxDoub)
-{
-    double randDoub;
-    double fraction = rand() / (RAND_MAX + 1.0);
-    randDoub = minDoub + (maxDoub - minDoub) * fraction;
-    return randDoub;
+int updateFrames(CONSTANTS c, int CurrentFrame, POSITION* frames, POSITION* positions){
+    int i;
+    for (i = 0; i < c.N; i++) {
+        frames[CurrentFrame*c.N + i] = positions[i];
+    }
+
+    return EXIT_SUCCESS;
 }
 
+int timestep(CONSTANTS c, POSITION* PositionArrayOld, POSITION* PositionArrayNew){
 
-// double GenRandDoubleMT(CONSTANTS c)
-// {
-//   seedMT();
-//
-// 	float x1, x2, w, y1;
-// 	static float y2;
-// 	static int use_last = 0;
-//
-// 	if (use_last)		        /* use value from previous call */
-// 	{
-// 		y1 = y2;
-// 		use_last = 0;
-// 	}
-// 	else
-// 	{
-// 		do {
-// 			x1 = 2.0 * randomMT() - 1.0;
-// 			x2 = 2.0 * randomMT() - 1.0;
-// 			w = x1 * x1 + x2 * x2;
-// 		} while ( w >= 1.0 );
-//
-// 		w = sqrt( (-2.0 * log( w ) ) / w );
-// 		y1 = x1 * w;
-// 		y2 = x2 * w;
-// 		use_last = 1;
-// 	}
-//
-// 	return( y1 * sqrt(2 * c.D * c.h));
-// }
+    int i;
 
+    PositionArrayNew[0].xPos = 0;
+    PositionArrayNew[0].yPos = 0;
+    PositionArrayNew[0].zPos = 0;
 
-double GenGaussRand ()
-{
-    double OutputGauss_1;
+    for(i = 1; i < c.N-1; i ++) {
+        PositionArrayNew[i] = Forces(PositionArrayOld[i-1], PositionArrayOld[i], PositionArrayOld[i+1], PositionArrayNew[i], PositionArrayOld, c, i);
 
-    double input_1 = GenRandDouble(-1, 1);
-    double input_2 = GenRandDouble(-1, 1);
+    }
 
-    OutputGauss_1 = sqrt(-2 * log(input_1) ) * cos(2 * pi * input_2);          //If using a standard Gaussian
+    PositionArrayNew[c.N-1] = ForcesLast(PositionArrayOld[c.N-2], PositionArrayOld[c.N-1], PositionArrayOld[c.N-1], PositionArrayNew[i], PositionArrayOld, c, i);
 
-    /*OutputGauss.Gauss_2 =sqrt(-2 * log(input_1) ) * sin(2 * pi * input_2);*/
-
-    return OutputGauss_1;
+    return EXIT_SUCCESS;
 }
 
+POSITION Forces(POSITION nMinusOnePos, POSITION nPosOld, POSITION nPosPlusOne, POSITION nPosNew, POSITION* PositionArrayOld,  CONSTANTS c, int i){
 
-FENE FENEForce(POSITION nMinusOnePos, POSITION nPos, POSITION nPosPlusOne, CONSTANTS c)
-{
+    BROWNIAN BrownianForces = Brownian(c);
+    FENE FENEForces = FENEForce(nMinusOnePos, nPosOld, nPosPlusOne, c);
+    POTENTIAL pot = potential(c, PositionArrayOld, i);
+
+    nPosNew.xPos = nPosOld.xPos + (c.h*((FENEForces.FENE_x1 - FENEForces.FENE_x2)/c.eta  + (BrownianForces.BrownianForce_x/c.eta) + (pot.potentialX/c.eta)));
+    // printf("%.12lf\n", (c.h*((FENEForces.FENE_x1 - FENEForces.FENE_x2)/c.eta )));
+
+    nPosNew.yPos = nPosOld.yPos + (c.h*((FENEForces.FENE_y1 - FENEForces.FENE_y2)/c.eta  + (BrownianForces.BrownianForce_y/c.eta) + (pot.potentialY/c.eta)));
+
+    nPosNew.zPos = nPosOld.zPos + (c.h*((FENEForces.FENE_z1 - FENEForces.FENE_z2)/c.eta  + (BrownianForces.BrownianForce_z/c.eta) + (pot.potentialZ/c.eta)));
+    return nPosNew;
+}
+
+POSITION ForcesLast(POSITION nMinusOnePos, POSITION nPosOld, POSITION nPosPlusOne, POSITION nPosNew, POSITION* PositionArrayOld, CONSTANTS c, int i){
+
+    BROWNIAN BrownianForces = Brownian(c);
+    FENE FENEForces = FENEForce(nMinusOnePos, nPosOld, nPosPlusOne, c);
+    POTENTIAL pot = potential(c, PositionArrayOld, i);
+
+    nPosNew.xPos = nPosOld.xPos + (c.h*((FENEForces.FENE_x1 - FENEForces.FENE_x2)/c.eta + (BrownianForces.BrownianForce_x/c.eta) + (pot.potentialX/c.eta)));
+
+    nPosNew.yPos = nPosOld.yPos + (c.h*((FENEForces.FENE_y1 - FENEForces.FENE_y2)/c.eta + (BrownianForces.BrownianForce_y/c.eta) + (pot.potentialY/c.eta)));
+
+    nPosNew.zPos = nPosOld.zPos + (c.h*((FENEForces.FENE_z1 - FENEForces.FENE_z2)/c.eta + (BrownianForces.BrownianForce_z/c.eta) + (pot.potentialZ/c.eta)));
+
+    return nPosNew;
+}
+
+FENE FENEForce(POSITION nMinusOnePos, POSITION nPos, POSITION nPosPlusOne, CONSTANTS c){
     FENE FENEForces;
 
     double Q_x1 = nPosPlusOne.xPos - nPos.xPos;
@@ -223,40 +203,21 @@ BROWNIAN Brownian(CONSTANTS c){
     BROWNIAN BrownianForces;
 
     BrownianForces.BrownianForce_x = sqrt((6 * Boltzmann * c.T*c.eta)/c.h) * GenGaussRand();            //random number from 1 to -1, Gaussian distribution
-    BrownianForces.BrownianForce_y = sqrt((6 * Boltzmann * c.T*c.eta)/c.h) * GenGaussRand();			  
+    BrownianForces.BrownianForce_y = sqrt((6 * Boltzmann * c.T*c.eta)/c.h) * GenGaussRand();
     BrownianForces.BrownianForce_z = sqrt((6 * Boltzmann * c.T*c.eta)/c.h) * GenGaussRand();            //On the scale E-2
 
     return BrownianForces;
 }
 
-POSITION Forces(POSITION nMinusOnePos, POSITION nPosOld, POSITION nPosPlusOne, POSITION nPosNew, POSITION* PositionArrayOld,  CONSTANTS c, int i){
+double GenGaussRand(){
+    double OutputGauss_1;
 
-    BROWNIAN BrownianForces = Brownian(c);
-    FENE FENEForces = FENEForce(nMinusOnePos, nPosOld, nPosPlusOne, c);
-    POTENTIAL pot = potential(c, PositionArrayOld, i);
+    double input_1 = ran2(long *idum);
+    double input_2 = ran2(long *idum);
 
-    nPosNew.xPos = nPosOld.xPos + (c.h*((FENEForces.FENE_x1 - FENEForces.FENE_x2)/c.eta  + (BrownianForces.BrownianForce_x/c.eta) + (pot.potentialX/c.eta)));
-    // printf("%.12lf\n", (c.h*((FENEForces.FENE_x1 - FENEForces.FENE_x2)/c.eta )));
+    OutputGauss_1 = sqrt(-2 * log(input_1) ) * cos(2 * pi * input_2);          //If using a standard Gaussian
 
-    nPosNew.yPos = nPosOld.yPos + (c.h*((FENEForces.FENE_y1 - FENEForces.FENE_y2)/c.eta  + (BrownianForces.BrownianForce_y/c.eta) + (pot.potentialX/c.eta)));
-
-    nPosNew.zPos = nPosOld.zPos + (c.h*((FENEForces.FENE_z1 - FENEForces.FENE_z2)/c.eta  + (BrownianForces.BrownianForce_z/c.eta) + (pot.potentialX/c.eta)));
-    return nPosNew;
-}
-
-POSITION ForcesLast(POSITION nMinusOnePos, POSITION nPosOld, POSITION nPosPlusOne, POSITION nPosNew, POSITION* PositionArrayOld, CONSTANTS c, int i){
-
-    BROWNIAN BrownianForces = Brownian(c);
-    FENE FENEForces = FENEForce(nMinusOnePos, nPosOld, nPosPlusOne, c);
-    POTENTIAL pot = potential(c, PositionArrayOld, i);
-
-    nPosNew.xPos = nPosOld.xPos + (c.h*((FENEForces.FENE_x1 - FENEForces.FENE_x2)/c.eta + (BrownianForces.BrownianForce_x/c.eta)));
-
-    nPosNew.yPos = nPosOld.yPos + (c.h*((FENEForces.FENE_y1 - FENEForces.FENE_y2)/c.eta + (BrownianForces.BrownianForce_y/c.eta)));
-
-    nPosNew.zPos = nPosOld.zPos + (c.h*((FENEForces.FENE_z1 - FENEForces.FENE_z2)/c.eta + (BrownianForces.BrownianForce_z/c.eta)));
-
-    return nPosNew;
+    return OutputGauss_1;
 }
 
 POTENTIAL potential(CONSTANTS c, POSITION* PositionArrayOld, int i){
@@ -298,48 +259,7 @@ POTENTIAL potential(CONSTANTS c, POSITION* PositionArrayOld, int i){
     return pot;
 }
 
-int CalcKnotPos(CONSTANTS c, POSITION* PositionArrayOld){
-
-    FILE *knot;
-    knot = fopen("8_19_32beads.txt", "r");
-    int beadnumber;
-    double TestxPos = 0.0, TestyPos = 0.0, TestzPos = 0.0;
-
-    if(knot != NULL){
-      int i = 0;
-      for(i = 0; i < c.N; i++){
-          if((i >= 0 && i < 15) || (i > 47 && i < c.N )){
-            if(i >= 0 && i < 15){
-              PositionArrayOld[i].xPos = i * (c.Q_0 * 0.8);
-              PositionArrayOld[i].yPos = 0.0;
-              PositionArrayOld[i].zPos = 0.0;
-            }
-            else{
-              PositionArrayOld[i].xPos = (i - 32) * (c.Q_0 * 0.8);
-              PositionArrayOld[i].yPos = 0.0;
-              PositionArrayOld[i].zPos = 0.0;
-            }
-          }
-
-          else{
-              fscanf(knot, "%d\t%lf\t%lf\t%lf", &beadnumber, &TestxPos, &TestyPos, &TestzPos);
-              PositionArrayOld[i].xPos = 15 * (c.Q_0 * 0.8) + TestxPos;
-              PositionArrayOld[i].yPos = TestyPos;
-              PositionArrayOld[i].zPos = TestzPos;
-          }
-      }
-
-      return EXIT_SUCCESS;
-    }
-
-    else {
-      printf("Error opening file\n");
-      exit(0);
-    }
-}
-
-int writeValues(CONSTANTS c, POSITION* frames)
-{
+int writeValues(CONSTANTS c, POSITION* frames){
 
     FILE *File_BeadPos;
     File_BeadPos = fopen("File_BeadPos.vtf", "w");
@@ -362,8 +282,7 @@ int writeValues(CONSTANTS c, POSITION* frames)
     return EXIT_SUCCESS;
 }
 
-int finalise(CONSTANTS* c, POSITION** PositionArrayOld, POSITION** PositionArrayNew, POSITION** frames)
-{
+int finalise(CONSTANTS* c, POSITION** PositionArrayOld, POSITION** PositionArrayNew, POSITION** frames){
     free(*PositionArrayOld);
     *PositionArrayOld = NULL;
     free(*PositionArrayOld);
