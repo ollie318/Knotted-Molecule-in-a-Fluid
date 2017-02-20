@@ -14,7 +14,7 @@
 #define EPS 1.2e-7				//For a double this possibly should be 1.0e-16
 #define RNMX (1.0 - EPS)
 
-float ran2(long *idum)
+double ran2(long *idum)
 /*Long period (>2 x 10^18) random number generator of L'Ecuyer with Bays-Durham shuffle and added safeguards.
 Returns a uniform random deviate between 0.0 and 1.0 (exclusive of endpoint values).
 Call with idum a negative integer to initialize; thereafter, do not alter idum between successive deviates in a sequence.

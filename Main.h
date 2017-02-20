@@ -40,7 +40,7 @@ typedef struct
 
 //FUNCTION PROTOTYPES
 
-int initialise(CONSTANTS* c, POSITION** PositionArrayOld, POSITION** PositionArrayNew, POSITION** frames);			//Sets constants, allocates memory for array of pointers
+int initialise(CONSTANTS* c, POSITION** PositionArrayOld, POSITION** PositionArrayNew, POSITION** frames, const char* paramfile);			//Sets constants, allocates memory for array of pointers
 
 int CalcKnotPos(CONSTANTS c, POSITION* PositionArrayOld);
 
@@ -63,5 +63,7 @@ POTENTIAL potential(CONSTANTS c, POSITION* PositionArrayOld, int i);												
 int writeValues(CONSTANTS c, POSITION* frames);																		//Writes all bead positions to file after arrays finished
 
 int finalise(CONSTANTS* c, POSITION** PositionArrayOld, POSITION** PositionArrayNew, POSITION** frames);			//frees memory
+
+void die(const char* message, const int line, const char* file);
 
 #endif

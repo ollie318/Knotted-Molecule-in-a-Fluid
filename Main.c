@@ -10,14 +10,20 @@
 
 //MAIN PROG
 
-int main(void)
-{
+int main(int argc, char *argv[]){
+
     CONSTANTS c;
     POSITION* PositionArrayOld;
     POSITION* PositionArrayNew;
     POSITION* frames;
+    char* paramfile = NULL;
 
-    initialise(&c, &PositionArrayOld, &PositionArrayNew, &frames);
+    if(argc != 2){
+      printf("Please use: ./a.out <paramfile>\n");
+    }
+    else paramfile = argv[1];
+
+    initialise(&c, &PositionArrayOld, &PositionArrayNew, &frames, paramfile);
 
     int loopcount;
     for(loopcount = 0; loopcount < c.maxIters; loopcount++){
@@ -36,22 +42,49 @@ int main(void)
     return 0;
 }
 
-int initialise(CONSTANTS* c, POSITION** PositionArrayOld, POSITION** PositionArrayNew, POSITION** frames){
+int initialise(CONSTANTS* c, POSITION** PositionArrayOld, POSITION** PositionArrayNew, POSITION** frames, const char* paramfile){
     // array constants
-    c->N = 60;
-    c->maxIters = 10000;
+    FILE* params;
+    params = fopen(paramfile, "r");
 
-    c->BeadRadi = 100E-9;                                                //diameter of polystyrene
-    c->FluidViscos = 2;                                             //Fluid viscosity
-    c->FlowVel = 13.0;                                                    //Fluid velocity, NOT relative velocity as needed for Stokes Law
-    c->h = 0.001;                                                          //Time step
-    c->T = 298;                                                          //Temperature in Kelvin
+    if(params == NULL){
+      die("File not found", __LINE__, __FILE__);
+    }
+
+    int readvalue;
+
+
+    readvalue = fscanf(params, "%d\n", &(c->N));
+    if(readvalue != 1) die("Could not read N", __LINE__, __FILE__);
+
+    readvalue = fscanf(params, "%d\n", &(c->maxIters));
+    if(readvalue != 1) die("Could not read number of iterations", __LINE__, __FILE__);
+
+    readvalue = fscanf(params, "%lf\n", &(c->BeadRadi));
+    if(readvalue != 1) die("Could not read bead radii", __LINE__, __FILE__);
+
+    readvalue = fscanf(params, "%lf\n", &(c->FluidViscos));
+    if(readvalue != 1) die("Could not read flow velocity", __LINE__, __FILE__);
+
+    readvalue = fscanf(params, "%lf\n", &(c->FlowVel));
+    if(readvalue != 1) die("Could not read flow velocity", __LINE__, __FILE__);
+
+    readvalue = fscanf(params, "%lf\n", &(c->h));
+    if(readvalue != 1) die("Could not read timestep", __LINE__, __FILE__);
+
+    readvalue = fscanf(params, "%lf\n", &(c->T));
+    if(readvalue != 1) die("Could not read temperature", __LINE__, __FILE__);
+
     c->D = (Boltzmann * c->T) / (6 * pi * c->FluidViscos * c->BeadRadi);    //Diffusion coefficient
     c->eta = 6*pi*c->FluidViscos*c->BeadRadi;
 
     //Spring coefficient calcs
-    c->N_k = 2626;
-    c->b_k = 1.8E-9;
+    readvalue = fscanf(params, "%lf\n", &(c->N_k));
+    if(readvalue != 1) die("Could not read N_k", __LINE__, __FILE__);
+
+    readvalue = fscanf(params, "%lf\n", &(c->b_k));
+    if(readvalue != 1) die("Could not read b_k", __LINE__, __FILE__);
+
     c->N_ks = c->N_k / (c->N-1);
     c->L_s = c->N_ks * c->b_k;
     c->H = (3*Boltzmann*c->T) / (c->L_s * c->b_k);                              //Taken from Simons paper, values for polystyrene not DNA
@@ -63,8 +96,13 @@ int initialise(CONSTANTS* c, POSITION** PositionArrayOld, POSITION** PositionArr
     c->MaxExtension = 5 * c->Q_0;
 
     (*PositionArrayOld) = (POSITION*) malloc(sizeof(POSITION) * c->N);
+    if(PositionArrayOld == NULL) die("cannot allocate memory for PositionArrayOld", __LINE__, __FILE__);
+
     (*PositionArrayNew) = (POSITION*) malloc(sizeof(POSITION) * c->N);
+    if(PositionArrayNew == NULL) die("cannot allocate memory for PositionArrayNew", __LINE__, __FILE__);
+
     (*frames) = (POSITION*) malloc(sizeof(POSITION) * c->N * c->maxIters);
+    if(frames == NULL) die("cannot allocate memory for frames", __LINE__, __FILE__);
 
     (*PositionArrayOld)[0].xPos = 0;                                         //Initialising pos1 to 0,0,0
     (*PositionArrayOld)[0].yPos = 0;
@@ -74,7 +112,7 @@ int initialise(CONSTANTS* c, POSITION** PositionArrayOld, POSITION** PositionArr
     (*PositionArrayOld)[1].yPos = (*PositionArrayOld)[0].yPos + (0.8 * c->Q_0);
     (*PositionArrayOld)[1].zPos = (*PositionArrayOld)[0].zPos + (0.8 * c->Q_0);
 
-    CalcKnotPos(*c, &PositionArrayOld);
+    CalcKnotPos(*c, *PositionArrayOld);
 
     return EXIT_SUCCESS;
 }
@@ -83,6 +121,7 @@ int CalcKnotPos(CONSTANTS c, POSITION* PositionArrayOld){
 
     FILE *knot;
     knot = fopen("8_19_32beads.txt", "r");
+
     int beadnumber;
     double TestxPos = 0.0, TestyPos = 0.0, TestzPos = 0.0;
 
@@ -113,8 +152,7 @@ int CalcKnotPos(CONSTANTS c, POSITION* PositionArrayOld){
       return EXIT_SUCCESS;
     }
     else {
-      printf("Error opening file\n");
-      exit(0);
+      die("cannot find knot coordinate file", __LINE__, __FILE__);
     }
 }
 
@@ -261,7 +299,7 @@ POTENTIAL potential(CONSTANTS c, POSITION* PositionArrayOld, int i){
 
 int writeValues(CONSTANTS c, POSITION* frames){
 
-    FILE *File_BeadPos;
+    FILE* File_BeadPos;
     File_BeadPos = fopen("File_BeadPos.vtf", "w");
 
     fprintf(File_BeadPos, "atom 0:%d\tradius 1.0\tname S\n" , c.N);
@@ -279,6 +317,8 @@ int writeValues(CONSTANTS c, POSITION* frames){
         fprintf(File_BeadPos, "%.14lf\t%.14lf\t%.14lf\n", 10E6 * frames[j].xPos, 10E6 * frames[j].yPos, 10E6 * frames[j].zPos);		//Writes value in um, micrometres
     }
 
+    fclose(File_BeadPos);
+
     return EXIT_SUCCESS;
 }
 
@@ -291,4 +331,10 @@ int finalise(CONSTANTS* c, POSITION** PositionArrayOld, POSITION** PositionArray
     *frames = NULL;
 
     return EXIT_SUCCESS;
+}
+
+void die(const char* message, const int line, const char* file){
+    fprintf(stderr, "%s. \nLine: %d, File: %s\n", message, line, file);
+    fflush(stderr);
+    exit(EXIT_FAILURE);
 }
