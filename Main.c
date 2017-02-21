@@ -18,8 +18,8 @@ int main(int argc, char *argv[]){
     POSITION* frames;
     char* paramfile = NULL;
 
-    if(argc != 1){
-      printf("Please use: ./a.out <paramfile>\n");
+    if(argc != 2){
+      die("Please use: ./a.out <paramfile>\n", __LINE__, __FILE__);
     }
     else paramfile = argv[1];
 
@@ -52,7 +52,6 @@ int initialise(CONSTANTS* c, POSITION** PositionArrayOld, POSITION** PositionArr
     }
 
     int readvalue;
-
 
     readvalue = fscanf(params, "%d\n", &(c->N));
     if(readvalue != 1) die("Could not read N", __LINE__, __FILE__);
@@ -94,6 +93,7 @@ int initialise(CONSTANTS* c, POSITION** PositionArrayOld, POSITION** PositionArr
     c->Q_0 = c->N_ks * c->b_k;
 
     c->MaxExtension = 5 * c->Q_0;
+    c->a = -475896;
 
     (*PositionArrayOld) = (POSITION*) malloc(sizeof(POSITION) * c->N);
     if(PositionArrayOld == NULL) die("cannot allocate memory for PositionArrayOld", __LINE__, __FILE__);
@@ -188,7 +188,7 @@ POSITION Forces(POSITION nMinusOnePos, POSITION nPosOld, POSITION nPosPlusOne, P
     POTENTIAL pot = potential(c, PositionArrayOld, i);
 
     nPosNew.xPos = nPosOld.xPos + (c.h*((FENEForces.FENE_x1 - FENEForces.FENE_x2)/c.eta  + (BrownianForces.BrownianForce_x/c.eta) + (pot.potentialX/c.eta)));
-    // printf("%.12lf\n", (c.h*((FENEForces.FENE_x1 - FENEForces.FENE_x2)/c.eta )));
+    // printf("%.12lf\n", pot.potentialX);
 
     nPosNew.yPos = nPosOld.yPos + (c.h*((FENEForces.FENE_y1 - FENEForces.FENE_y2)/c.eta  + (BrownianForces.BrownianForce_y/c.eta) + (pot.potentialY/c.eta)));
 
@@ -238,22 +238,22 @@ FENE FENEForce(POSITION nMinusOnePos, POSITION nPos, POSITION nPosPlusOne, CONST
 BROWNIAN Brownian(CONSTANTS c){
     BROWNIAN BrownianForces;
 
-    BrownianForces.BrownianForce_x = sqrt((6 * Boltzmann * c.T*c.eta)/c.h) * GenGaussRand();            //random number from 1 to -1, Gaussian distribution
-    BrownianForces.BrownianForce_y = sqrt((6 * Boltzmann * c.T*c.eta)/c.h) * GenGaussRand();
-    BrownianForces.BrownianForce_z = sqrt((6 * Boltzmann * c.T*c.eta)/c.h) * GenGaussRand();            //On the scale E-2
+    BrownianForces.BrownianForce_x = sqrt((6 * Boltzmann * c.T*c.eta)/c.h) * GenGaussRand(c);            //random number from 1 to -1, Gaussian distribution
+    BrownianForces.BrownianForce_y = sqrt((6 * Boltzmann * c.T*c.eta)/c.h) * GenGaussRand(c);
+    BrownianForces.BrownianForce_z = sqrt((6 * Boltzmann * c.T*c.eta)/c.h) * GenGaussRand(c);            //On the scale E-2
 
     return BrownianForces;
 }
 
-double GenGaussRand(){
+double GenGaussRand(CONSTANTS c){
     double OutputGauss_1;
-    long a = -793648;
-    long *b = &a;
+    long *b = &c.a;
     double input_1 = ran2(b);
     double input_2 = ran2(b);
 
     OutputGauss_1 = sqrt(-2 * log(input_1) ) * cos(2 * pi * input_2);          //If using a standard Gaussian
-
+    printf("%.12lf\n", OutputGauss_1);
+    exit(0);
     return OutputGauss_1;
 }
 
