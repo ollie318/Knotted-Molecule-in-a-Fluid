@@ -1,7 +1,7 @@
 /*ran2 from Numerical Recipes in C, 2nd ed. 1992*/
 #define IM1 2147483563
 #define IM2 2147483399
-#define AM (1/IM1)
+//#define AM (1/IM1)
 #define IMM1 (IM1-1)
 #define IA1 40014
 #define IA2 40692
@@ -11,7 +11,7 @@
 #define IR2 3791
 #define NTAB 32
 #define NDIV (1+IMM1/NTAB)
-#define EPS 1.2e-7				//For a double this possibly should be 1.0e-16
+#define EPS 1.2e-16				//For a double this possibly should be 1.0e-16
 #define RNMX (1.0 - EPS)
 
 double ran2(long *idum)
@@ -21,11 +21,12 @@ Call with idum a negative integer to initialize; thereafter, do not alter idum b
 RNMX should approximate the largest floating value that is less than 1.*/
 {
 	int j;
-	int k;
+	long k;
 	static long idum2=123456789;
 	static long iy=0;
 	static long iv[NTAB];
-	float temp;
+	double temp;
+	double AM = 4.6566131e-10;
 
 	if (*idum <= 0) {							//Initialise
 		if (-(*idum) < 1) *idum=1;				//Be sure to prevent idum = 0
@@ -49,6 +50,7 @@ RNMX should approximate the largest floating value that is less than 1.*/
 	iy=iv[j]-idum2;								//Here idum is shuffled, idum and idum2 are combined to generate output
 	iv[j] = *idum;
 	if (iy < 1) iy += IMM1;
-	if ((temp=AM*iy) > RNMX) return RNMX;		//Because users don't expect endpoint values
+	temp = AM*iy;
+	if (temp > RNMX) return RNMX;		//Because users don't expect endpoint values
 	else return temp;
 }
