@@ -129,14 +129,14 @@ int CalcKnotPos(CONSTANTS c, POSITION* PositionArrayOld){
 
     int i = 0;
     for(i = 0; i < c.N; i++){
-        if((i >= 0 && i < 15) || (i > 47 && i < c.N )){
+        if((i >= 0 && i < 15) || (i > 45 && i < c.N )){
           if(i >= 0 && i < 15){
             PositionArrayOld[i].xPos = i * (c.Q_0 * 0.8);
             PositionArrayOld[i].yPos = 0.0;
             PositionArrayOld[i].zPos = 0.0;
           }
           else{
-            PositionArrayOld[i].xPos = (i - 32) * (c.Q_0 * 0.8);
+            PositionArrayOld[i].xPos = (i - 31) * (c.Q_0 * 0.8);
             PositionArrayOld[i].yPos = 0.0;
             PositionArrayOld[i].zPos = 0.0;
           }
@@ -252,8 +252,10 @@ double GenGaussRand(CONSTANTS c){
     double input_2 = ran2(b);
 
     OutputGauss_1 = sqrt(-2 * log(input_1) ) * cos(2 * pi * input_2);          //If using a standard Gaussian
-    printf("%.12lf\n", OutputGauss_1);
-    exit(0);
+    int k;
+    for(k=0; k<100;k++){
+      printf("%.12lf\n", OutputGauss_1);
+    }
     return OutputGauss_1;
 }
 
@@ -283,15 +285,22 @@ POTENTIAL potential(CONSTANTS c, POSITION* PositionArrayOld, int i){
         sepZ = PositionArrayOld[i].zPos - PositionArrayOld[j].zPos;
         TotalSep = sqrt( sepX*sepX + sepY*sepY + sepZ*sepZ );
 
-        potX = (4*(epsilon) * sepX * (pow(sigma, 4)/pow(TotalSep, 6)))/AvogadroNum;
-        potY = (4*(epsilon) * sepY * (pow(sigma, 4)/pow(TotalSep, 6)))/AvogadroNum;
-        potZ = (4*(epsilon) * sepZ * (pow(sigma, 4)/pow(TotalSep, 6)))/AvogadroNum;
+        // if(TotalSep != 0){
+          potX = (4*(epsilon) * sepX * (pow(sigma, 4)/pow(TotalSep, 6)))/AvogadroNum;
+          potY = (4*(epsilon) * sepY * (pow(sigma, 4)/pow(TotalSep, 6)))/AvogadroNum;
+          potZ = (4*(epsilon) * sepZ * (pow(sigma, 4)/pow(TotalSep, 6)))/AvogadroNum;
+          // printf("%.25lf\n", potX);
+
+        // }
+
+        // else die("Molecule separation is 0", __LINE__, __FILE__);
 
         pot.potentialX += potX;
         pot.potentialY += potY;
         pot.potentialZ += potZ;
 
-        }
+      }
+
     }
     return pot;
 }
