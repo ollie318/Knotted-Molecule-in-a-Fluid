@@ -94,6 +94,7 @@ int initialise(CONSTANTS* c, POSITION** PositionArrayOld, POSITION** PositionArr
 
     c->MaxExtension = 5 * c->Q_0;
     c->a = -475896;
+    *c->b = (c->a);
 
     (*PositionArrayOld) = (POSITION*) malloc(sizeof(POSITION) * c->N);
     if(PositionArrayOld == NULL) die("cannot allocate memory for PositionArrayOld", __LINE__, __FILE__);
@@ -214,23 +215,27 @@ POSITION ForcesLast(POSITION nMinusOnePos, POSITION nPosOld, POSITION nPosPlusOn
 FENE FENEForce(POSITION nMinusOnePos, POSITION nPos, POSITION nPosPlusOne, CONSTANTS c){
     FENE FENEForces;
 
+    double TotalSep1 = sqrt(pow(nPosPlusOne.xPos - nPos.xPos, 2) + pow(nPosPlusOne.yPos - nPos.yPos, 2) + pow(nPosPlusOne.zPos - nPos.zPos, 2));
+
+    double TotalSep2 = sqrt(pow(nPos.xPos - nMinusOnePos.xPos, 2) + pow(nPos.yPos - nMinusOnePos.yPos, 2) + pow(nPos.zPos - nMinusOnePos.zPos, 2));
+
     double Q_x1 = nPosPlusOne.xPos - nPos.xPos;
-    FENEForces.FENE_x1 = (c.H * Q_x1) / (1 - ((Q_x1 * Q_x1)/ (c.MaxExtension * c.MaxExtension)));                             //Q_x1 is bond length for x & right, x2 left, y in y-dir etc
+    FENEForces.FENE_x1 = (c.H * Q_x1) / (1 - ((TotalSep1*TotalSep1)/ (c.MaxExtension * c.MaxExtension)));                             //Q_x1 is bond length for x & right, x2 left, y in y-dir etc
 
     double Q_x2 = nPos.xPos - nMinusOnePos.xPos;
-    FENEForces.FENE_x2 = (c.H * Q_x2) / (1 - ((Q_x2 * Q_x2)/ (c.MaxExtension * c.MaxExtension)));                           //Values usually between -10 & 10 -- -297 on one run?
+    FENEForces.FENE_x2 = (c.H * Q_x2) / (1 - ((TotalSep2*TotalSep2)/ (c.MaxExtension * c.MaxExtension)));                           //Values usually between -10 & 10 -- -297 on one run?
 
     double Q_y1 = nPosPlusOne.yPos - nPos.yPos;
-    FENEForces.FENE_y1 = (c.H * Q_y1) / (1 - ((Q_y1 * Q_y1)/ (c.MaxExtension * c.MaxExtension)));
+    FENEForces.FENE_y1 = (c.H * Q_y1) / (1 - ((TotalSep1*TotalSep1)/ (c.MaxExtension * c.MaxExtension)));
 
     double Q_y2 = nPos.yPos - nMinusOnePos.yPos;
-    FENEForces.FENE_y2 = (c.H * Q_y2) / (1 - ((Q_y2 * Q_y2)/ (c.MaxExtension * c.MaxExtension)));
+    FENEForces.FENE_y2 = (c.H * Q_y2) / (1 - ((TotalSep2*TotalSep2)/ (c.MaxExtension * c.MaxExtension)));
 
     double Q_z1 = nPosPlusOne.zPos - nPos.zPos;
-    FENEForces.FENE_z1 = (c.H * Q_z1) / (1 - ((Q_z1 * Q_z1)/ (c.MaxExtension * c.MaxExtension)));
+    FENEForces.FENE_z1 = (c.H * Q_z1) / (1 - ((TotalSep1*TotalSep1)/ (c.MaxExtension * c.MaxExtension)));
 
     double Q_z2 = nPos.zPos - nMinusOnePos.zPos;
-    FENEForces.FENE_z2 = (c.H * Q_z2) / (1 - ((Q_z2 * Q_z2)/ (c.MaxExtension * c.MaxExtension)));
+    FENEForces.FENE_z2 = (c.H * Q_z2) / (1 - ((TotalSep2*TotalSep2)/ (c.MaxExtension * c.MaxExtension)));
 
     return FENEForces;
 }
@@ -247,12 +252,12 @@ BROWNIAN Brownian(CONSTANTS c){
 
 double GenGaussRand(CONSTANTS c){
     double OutputGauss_1;
-    long *b = &c.a;
-    double input_1 = ran2(b);
-    double input_2 = ran2(b);
 
-    OutputGauss_1 = sqrt(-2 * log(input_1) ) * cos(2 * pi * input_2);
-      //If using a standard Gaussian
+    double input_1 = ran2(c.b);
+    double input_2 = ran2(c.b);
+
+    OutputGauss_1 = sqrt(-2 * log(input_1) ) * cos(2 * pi * input_2);          //If using a standard Gaussian
+
     return OutputGauss_1;
 }
 
