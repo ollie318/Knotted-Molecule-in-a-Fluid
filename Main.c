@@ -251,11 +251,8 @@ double GenGaussRand(CONSTANTS c){
     double input_1 = ran2(b);
     double input_2 = ran2(b);
 
-    OutputGauss_1 = sqrt(-2 * log(input_1) ) * cos(2 * pi * input_2);          //If using a standard Gaussian
-    int k;
-    for(k=0; k<100;k++){
-      printf("%.12lf\n", OutputGauss_1);
-    }
+    OutputGauss_1 = sqrt(-2 * log(input_1) ) * cos(2 * pi * input_2);
+      //If using a standard Gaussian
     return OutputGauss_1;
 }
 
@@ -285,15 +282,13 @@ POTENTIAL potential(CONSTANTS c, POSITION* PositionArrayOld, int i){
         sepZ = PositionArrayOld[i].zPos - PositionArrayOld[j].zPos;
         TotalSep = sqrt( sepX*sepX + sepY*sepY + sepZ*sepZ );
 
-        // if(TotalSep != 0){
+        if(TotalSep != 0){
           potX = (4*(epsilon) * sepX * (pow(sigma, 4)/pow(TotalSep, 6)))/AvogadroNum;
           potY = (4*(epsilon) * sepY * (pow(sigma, 4)/pow(TotalSep, 6)))/AvogadroNum;
           potZ = (4*(epsilon) * sepZ * (pow(sigma, 4)/pow(TotalSep, 6)))/AvogadroNum;
-          // printf("%.25lf\n", potX);
+        }
 
-        // }
-
-        // else die("Molecule separation is 0", __LINE__, __FILE__);
+        else die("Molecule separation is 0", __LINE__, __FILE__);
 
         pot.potentialX += potX;
         pot.potentialY += potY;
