@@ -3,6 +3,7 @@
 #include <math.h>
 #include "Main.h"
 #include "random.h"
+#include "KnotAnalysis.h"
 
 #define Boltzmann 1.38064852E-23
 #define pi 3.1415926535897932
@@ -36,7 +37,8 @@ int main(int argc, char *argv[]){
         }
     }
 
-    writeValues(c, frames);
+    writeVTF(c, frames);
+    writeKnotAnalysis(c, frames);
     finalise(&c, &PositionArrayOld, &PositionArrayNew, &frames);
 
     return 0;
@@ -63,7 +65,7 @@ int initialise(CONSTANTS* c, POSITION** PositionArrayOld, POSITION** PositionArr
     if(readvalue != 1) die("Could not read bead radii", __LINE__, __FILE__);
 
     readvalue = fscanf(params, "%lf\n", &(c->FluidViscos));
-    if(readvalue != 1) die("Could not read flow velocity", __LINE__, __FILE__);
+    if(readvalue != 1) die("Could not read fluid viscosity", __LINE__, __FILE__);
 
     readvalue = fscanf(params, "%lf\n", &(c->FlowVel));
     if(readvalue != 1) die("Could not read flow velocity", __LINE__, __FILE__);
@@ -86,15 +88,15 @@ int initialise(CONSTANTS* c, POSITION** PositionArrayOld, POSITION** PositionArr
 
     c->N_ks = c->N_k / (c->N-1);
     c->L_s = c->N_ks * c->b_k;
-    c->H = (3*Boltzmann*c->T) / (c->L_s * c->b_k);                              //Taken from Simons paper, values for polystyrene not DNA
+    c->H = (3*Boltzmann*c->T) / (c->L_s * c->b_k);                             //Taken from Simons paper, values for polystyrene not DNA
 
     //c.m = 1.9927E-26;
     c->m = 0.104 / AvogadroNum;                                          //Bead mass for styrene
     c->Q_0 = c->N_ks * c->b_k;
 
-    c->MaxExtension = 5 * c->Q_0;
+    c->MaxExtension = c->L_s;
     c->a = -475896;
-    *c->b = (c->a);
+    c->b = &(c->a);
 
     (*PositionArrayOld) = (POSITION*) malloc(sizeof(POSITION) * c->N);
     if(PositionArrayOld == NULL) die("cannot allocate memory for PositionArrayOld", __LINE__, __FILE__);
@@ -288,9 +290,9 @@ POTENTIAL potential(CONSTANTS c, POSITION* PositionArrayOld, int i){
         TotalSep = sqrt( sepX*sepX + sepY*sepY + sepZ*sepZ );
 
         if(TotalSep != 0){
-          potX = (4*(epsilon) * sepX * (pow(sigma, 4)/pow(TotalSep, 6)))/AvogadroNum;
-          potY = (4*(epsilon) * sepY * (pow(sigma, 4)/pow(TotalSep, 6)))/AvogadroNum;
-          potZ = (4*(epsilon) * sepZ * (pow(sigma, 4)/pow(TotalSep, 6)))/AvogadroNum;
+          potX = (5*(epsilon) * sepX * (pow(sigma, 5)/pow(TotalSep, 7)))/AvogadroNum;
+          potY = (5*(epsilon) * sepY * (pow(sigma, 5)/pow(TotalSep, 7)))/AvogadroNum;
+          potZ = (5*(epsilon) * sepZ * (pow(sigma, 5)/pow(TotalSep, 7)))/AvogadroNum;
         }
 
         else die("Molecule separation is 0", __LINE__, __FILE__);
@@ -305,10 +307,11 @@ POTENTIAL potential(CONSTANTS c, POSITION* PositionArrayOld, int i){
     return pot;
 }
 
-int writeValues(CONSTANTS c, POSITION* frames){
+int writeVTF(CONSTANTS c, POSITION* frames){
 
     FILE* File_BeadPos;
     File_BeadPos = fopen("File_BeadPos.vtf", "w");
+    if(File_BeadPos == NULL) die("Bead coordinate file could not be opened", __LINE__, __FILE__);
 
     fprintf(File_BeadPos, "atom 0:%d\tradius 1.0\tname S\n" , c.N);
 
@@ -322,11 +325,45 @@ int writeValues(CONSTANTS c, POSITION* frames){
     {
         if (j%c.N == 0)
             fprintf(File_BeadPos, "\ntimestep\n");
-        fprintf(File_BeadPos, "%.14lf\t%.14lf\t%.14lf\n", 10E6 * frames[j].xPos, 10E6 * frames[j].yPos, 10E6 * frames[j].zPos);		//Writes value in um, micrometres
+            fprintf(File_BeadPos, "%.14lf\t%.14lf\t%.14lf\n", 10E6 * frames[j].xPos, 10E6 * frames[j].yPos, 10E6 * frames[j].zPos);		//Writes value in um, micrometres
     }
 
     fclose(File_BeadPos);
 
+    return EXIT_SUCCESS;
+}
+
+int writeKnotAnalysis(CONSTANTS c, POSITION* frames){
+    FILE* KnotAnalysis;
+    KnotAnalysis = fopen("KnotAnalysis.txt", "w");
+    if(KnotAnalysis == NULL) die("Knot Analysis file could not be opened", __LINE__, __FILE__);
+
+
+    double* chain = (double*) malloc( sizeof(double) * 3 * c.N );
+    int j, i;
+    for(j = 0; j<c.N*c.maxIters; j += 10*c.N){ // taking every 10th frame
+      for( i = 0; i < c.N; i++ ) { // taking each bead for that frame
+        POSITION p = frames[ j + i ];
+        chain[3*i] = p.xPos;
+        chain[3*i + 1] = p.yPos;
+        chain[3*i + 2] = p.zPos;
+      }
+
+      fprintf(KnotAnalysis, "Start\tEnd\tPosition" );
+
+      jKN* PolymerKnot;
+      PolymerKnot = jKN_alloc(chain, c.N);
+      KnotScan(PolymerKnot);
+      if (PolymerKnot->state>0){
+          double kstart, kend, kpos;
+					kstart = floor(0.5+PolymerKnot->start)+1;
+					kend = floor(0.5+PolymerKnot->end)+1;
+					kpos = floor(0.5+PolymerKnot->position)+1;
+          fprintf(KnotAnalysis, "%lf\t%lf\t%lf\n", kstart, kend, kpos);
+      }
+
+    }
+    fclose(KnotAnalysis);
     return EXIT_SUCCESS;
 }
 
