@@ -229,7 +229,7 @@ int KnotAnalyse(const double * chain,int size,int projection,double *tvalue,doub
 	for(ni=0;ni<crosscnt;ni++) {
 		crssndx[crssngs[ni][0]][0]= crssngs[ni][1]; // which bond does primary bond cross?
 		crssndx[crssngs[ni][0]][1]= crssngs[ni][2]; // does it go under or over?
-		crssndx[crssngs[ni][0]][2]= crssngs[ni][0]; // record original position 
+		crssndx[crssngs[ni][0]][2]= crssngs[ni][0]; // record original position
 		crssndx[crssngs[ni][1]][0]= crssngs[ni][0]; // same for secondary bond
 		crssndx[crssngs[ni][1]][1]=-crssngs[ni][2]; //
 		crssndx[crssngs[ni][1]][2]= crssngs[ni][1]; //
@@ -387,7 +387,7 @@ void KnotScan(jKN *knot)
 //	printf("Pt:1\n");
 	knot->state1=KnotAnalyse(knot->chain,knot->size,1,&(knot->length1),&(knot->start1),&(knot->end1)); // analyse knot from two projections
 //	printf("Pt:2\n");
-	knot->state2=KnotAnalyse(knot->chain,knot->size,0,&(knot->length2),&(knot->start2),&(knot->end2)); 
+	knot->state2=KnotAnalyse(knot->chain,knot->size,0,&(knot->length2),&(knot->start2),&(knot->end2));
 //	printf("Pt:3\n");
 	knot->state=(knot->state1<=knot->state2?knot->state1:knot->state2); // take lowest knot state as algorithm usually overestimates
 //	printf("Pt:4\n");

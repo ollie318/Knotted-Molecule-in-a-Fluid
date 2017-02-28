@@ -111,10 +111,6 @@ int initialise(CONSTANTS* c, POSITION** PositionArrayOld, POSITION** PositionArr
     (*PositionArrayOld)[0].yPos = 0;
     (*PositionArrayOld)[0].zPos = 0;
 
-    (*PositionArrayOld)[1].xPos = (*PositionArrayOld)[0].xPos + (0.8 * c->Q_0);
-    (*PositionArrayOld)[1].yPos = (*PositionArrayOld)[0].yPos + (0.8 * c->Q_0);
-    (*PositionArrayOld)[1].zPos = (*PositionArrayOld)[0].zPos + (0.8 * c->Q_0);
-
     CalcKnotPos(*c, *PositionArrayOld);
 
     return EXIT_SUCCESS;
@@ -127,11 +123,12 @@ int CalcKnotPos(CONSTANTS c, POSITION* PositionArrayOld){
 
     if(knot == NULL) die("cannot find knot coordinate file", __LINE__, __FILE__);
 
-    int beadnumber;
-    double TestxPos = 0.0, TestyPos = 0.0, TestzPos = 0.0;
 
-    int i = 0;
-    for(i = 0; i < c.N; i++){
+    #pragma omp parallel for
+    for(int i = 0; i < c.N; i++){
+        double TestxPos = 0.0, TestyPos = 0.0, TestzPos = 0.0;
+        int beadnumber;
+
         if((i >= 0 && i < 15) || (i > 45 && i < c.N )){
           if(i >= 0 && i < 15){
             PositionArrayOld[i].xPos = i * (c.Q_0 * 0.8);
@@ -158,8 +155,8 @@ int CalcKnotPos(CONSTANTS c, POSITION* PositionArrayOld){
 }
 
 int updateFrames(CONSTANTS c, int CurrentFrame, POSITION* frames, POSITION* positions){
-    int i;
-    for (i = 0; i < c.N; i++) {
+    #pragma omp parallel for
+    for (int i = 0; i < c.N; i++) {
         frames[CurrentFrame*c.N + i] = positions[i];
     }
 
@@ -174,6 +171,7 @@ int timestep(CONSTANTS c, POSITION* PositionArrayOld, POSITION* PositionArrayNew
     PositionArrayNew[0].yPos = 0;
     PositionArrayNew[0].zPos = 0;
 
+    #pragma omp parallel for
     for(i = 1; i < c.N-1; i ++) {
         PositionArrayNew[i] = Forces(PositionArrayOld[i-1], PositionArrayOld[i], PositionArrayOld[i+1], PositionArrayNew[i], PositionArrayOld, c, i);
 
@@ -190,12 +188,12 @@ POSITION Forces(POSITION nMinusOnePos, POSITION nPosOld, POSITION nPosPlusOne, P
     FENE FENEForces = FENEForce(nMinusOnePos, nPosOld, nPosPlusOne, c);
     POTENTIAL pot = potential(c, PositionArrayOld, i);
 
-    nPosNew.xPos = nPosOld.xPos + (c.h*((FENEForces.FENE_x1 - FENEForces.FENE_x2)/c.eta  + (BrownianForces.BrownianForce_x/c.eta) + (pot.potentialX/c.eta)));
+    nPosNew.xPos = nPosOld.xPos + c.h*((FENEForces.FENE_x1 - FENEForces.FENE_x2 + BrownianForces.BrownianForce_x + pot.potentialX)/c.eta);
     // printf("%.12lf\n", pot.potentialX);
 
-    nPosNew.yPos = nPosOld.yPos + (c.h*((FENEForces.FENE_y1 - FENEForces.FENE_y2)/c.eta  + (BrownianForces.BrownianForce_y/c.eta) + (pot.potentialY/c.eta)));
+    nPosNew.yPos = nPosOld.yPos + c.h*((FENEForces.FENE_y1 - FENEForces.FENE_y2 + BrownianForces.BrownianForce_y + pot.potentialY)/c.eta);
 
-    nPosNew.zPos = nPosOld.zPos + (c.h*((FENEForces.FENE_z1 - FENEForces.FENE_z2)/c.eta  + (BrownianForces.BrownianForce_z/c.eta) + (pot.potentialZ/c.eta)));
+    nPosNew.zPos = nPosOld.zPos + c.h*((FENEForces.FENE_z1 - FENEForces.FENE_z2 + BrownianForces.BrownianForce_z + pot.potentialZ)/c.eta);
     return nPosNew;
 }
 
@@ -264,6 +262,7 @@ double GenGaussRand(CONSTANTS c){
 }
 
 POTENTIAL potential(CONSTANTS c, POSITION* PositionArrayOld, int i){
+
     double sepX, sepY, sepZ, TotalSep, epsilon, sigma, potX, potY, potZ;
     POTENTIAL pot;
 
@@ -274,34 +273,30 @@ POTENTIAL potential(CONSTANTS c, POSITION* PositionArrayOld, int i){
     pot.potentialY = 0.0;
     pot.potentialZ = 0.0;
 
-    int j;
-    for(j = 0; j < c.N; j++)
+    // #pragma omp parallel for
+    for(int j = 0; j < c.N; j++)
     {
-        if(j == i){
-          potX = 0.0;
-          potY = 0.0;
-          potZ = 0.0;
-        }
 
-        else{
-        sepX = PositionArrayOld[i].xPos - PositionArrayOld[j].xPos;
-        sepY = PositionArrayOld[i].yPos - PositionArrayOld[j].yPos;
-        sepZ = PositionArrayOld[i].zPos - PositionArrayOld[j].zPos;
-        TotalSep = sqrt( sepX*sepX + sepY*sepY + sepZ*sepZ );
+      sepX = PositionArrayOld[i].xPos - PositionArrayOld[j].xPos;
+      sepY = PositionArrayOld[i].yPos - PositionArrayOld[j].yPos;
+      sepZ = PositionArrayOld[i].zPos - PositionArrayOld[j].zPos;
+      TotalSep = sqrt( sepX*sepX + sepY*sepY + sepZ*sepZ );
 
-        if(TotalSep != 0){
-          potX = (5*(epsilon) * sepX * (pow(sigma, 5)/pow(TotalSep, 7)))/AvogadroNum;
-          potY = (5*(epsilon) * sepY * (pow(sigma, 5)/pow(TotalSep, 7)))/AvogadroNum;
-          potZ = (5*(epsilon) * sepZ * (pow(sigma, 5)/pow(TotalSep, 7)))/AvogadroNum;
-        }
+      potX = (5*(epsilon) * sepX * (pow(sigma, 5)/pow(TotalSep, 7)))/AvogadroNum;
+      potY = (5*(epsilon) * sepY * (pow(sigma, 5)/pow(TotalSep, 7)))/AvogadroNum;
+      potZ = (5*(epsilon) * sepZ * (pow(sigma, 5)/pow(TotalSep, 7)))/AvogadroNum;
 
-        else die("Molecule separation is 0", __LINE__, __FILE__);
-
-        pot.potentialX += potX;
-        pot.potentialY += potY;
-        pot.potentialZ += potZ;
-
+      if(j == i){
+        potX = 0.0;
+        potY = 0.0;
+        potZ = 0.0;
       }
+
+      pot.potentialX += potX;
+      pot.potentialY += potY;
+      pot.potentialZ += potZ;
+
+
 
     }
     return pot;
@@ -336,33 +331,36 @@ int writeVTF(CONSTANTS c, POSITION* frames){
 int writeKnotAnalysis(CONSTANTS c, POSITION* frames){
     FILE* KnotAnalysis;
     KnotAnalysis = fopen("KnotAnalysis.txt", "w");
+
     if(KnotAnalysis == NULL) die("Knot Analysis file could not be opened", __LINE__, __FILE__);
 
 
     double* chain = (double*) malloc( sizeof(double) * 3 * c.N );
-    int j, i;
-    for(j = 0; j<c.N*c.maxIters; j += 10*c.N){ // taking every 10th frame
-      for( i = 0; i < c.N; i++ ) { // taking each bead for that frame
+
+    #pragma omp parallel for
+    for(int j = 0; j<c.N*c.maxIters; j += 10*c.N){ // taking every 10th frame
+      for(int i = 0; i < c.N; i++ ) { // taking each bead for that frame
         POSITION p = frames[ j + i ];
         chain[3*i] = p.xPos;
         chain[3*i + 1] = p.yPos;
         chain[3*i + 2] = p.zPos;
       }
-
-      fprintf(KnotAnalysis, "Start\tEnd\tPosition" );
-
-      jKN* PolymerKnot;
-      PolymerKnot = jKN_alloc(chain, c.N);
-      KnotScan(PolymerKnot);
-      if (PolymerKnot->state>0){
-          double kstart, kend, kpos;
-					kstart = floor(0.5+PolymerKnot->start)+1;
-					kend = floor(0.5+PolymerKnot->end)+1;
-					kpos = floor(0.5+PolymerKnot->position)+1;
-          fprintf(KnotAnalysis, "%lf\t%lf\t%lf\n", kstart, kend, kpos);
-      }
-
     }
+
+      fprintf(KnotAnalysis, "Start\tEnd\tPosition\n" );
+
+    jKN* PolymerKnot;
+    PolymerKnot = jKN_alloc(chain, c.N);
+    KnotScan(PolymerKnot);
+    if (PolymerKnot->state>0){
+        double kstart, kend, kpos;
+				kstart = floor(0.5+PolymerKnot->start)+1;
+				kend = floor(0.5+PolymerKnot->end)+1;
+				kpos = floor(0.5+PolymerKnot->position)+1;
+        fprintf(KnotAnalysis, "%lf\t%lf\t%lf\n", kstart, kend, kpos);
+    }
+    else fprintf(KnotAnalysis, "state = 0");
+
     fclose(KnotAnalysis);
     return EXIT_SUCCESS;
 }

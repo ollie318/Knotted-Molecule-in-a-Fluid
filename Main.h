@@ -64,7 +64,7 @@ POTENTIAL potential(CONSTANTS c, POSITION* PositionArrayOld, int i);												
 
 int writeVTF(CONSTANTS c, POSITION* frames);																		//Writes all bead positions to file after arrays finished
 
-int writeKnotAnalysis(CONSTANTS c, POSITION* frames)
+int writeKnotAnalysis(CONSTANTS c, POSITION* frames);
 
 int finalise(CONSTANTS* c, POSITION** PositionArrayOld, POSITION** PositionArrayNew, POSITION** frames);			//frees memory
 
