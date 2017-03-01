@@ -124,7 +124,7 @@ int CalcKnotPos(CONSTANTS c, POSITION* PositionArrayOld){
     if(knot == NULL) die("cannot find knot coordinate file", __LINE__, __FILE__);
 
 
-    #pragma omp parallel for
+    // #pragma omp parallel for
     for(int i = 0; i < c.N; i++){
         double TestxPos = 0.0, TestyPos = 0.0, TestzPos = 0.0;
         int beadnumber;
@@ -155,7 +155,7 @@ int CalcKnotPos(CONSTANTS c, POSITION* PositionArrayOld){
 }
 
 int updateFrames(CONSTANTS c, int CurrentFrame, POSITION* frames, POSITION* positions){
-    #pragma omp parallel for
+    // #pragma omp parallel for
     for (int i = 0; i < c.N; i++) {
         frames[CurrentFrame*c.N + i] = positions[i];
     }
@@ -336,7 +336,7 @@ int writeKnotAnalysis(CONSTANTS c, POSITION* frames){
 
     double* chain = (double*) malloc( sizeof(double) * 3 * c.N );
 
-    #pragma omp parallel for
+    // #pragma omp parallel for
     for(int j = 0; j<c.N*c.maxIters; j += 10*c.N){ // taking every 10th frame
       for(int i = 0; i < c.N; i++ ) { // taking each bead for that frame
         POSITION p = frames[ j + i ];
