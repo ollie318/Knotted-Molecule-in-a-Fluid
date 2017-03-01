@@ -171,7 +171,6 @@ int timestep(CONSTANTS c, POSITION* PositionArrayOld, POSITION* PositionArrayNew
     PositionArrayNew[0].yPos = 0;
     PositionArrayNew[0].zPos = 0;
 
-    #pragma omp parallel for
     for(i = 1; i < c.N-1; i ++) {
         PositionArrayNew[i] = Forces(PositionArrayOld[i-1], PositionArrayOld[i], PositionArrayOld[i+1], PositionArrayNew[i], PositionArrayOld, c, i);
 
