@@ -3,28 +3,8 @@
 
 typedef struct
 {
-    double xPos, yPos, zPos;
-} POSITION;
-
-typedef struct
-{
-    double theta, phi;
-} ANGLES;
-
-typedef struct
-{
-    double Gauss_1, Gauss_2;
-} TWO_GAUSS;
-
-typedef struct
-{
-    double FENE_x1, FENE_x2, FENE_y1, FENE_y2, FENE_z1, FENE_z2;
-} FENE;
-
-typedef struct
-{
-    double BrownianForce_x, BrownianForce_y, BrownianForce_z;
-} BROWNIAN;
+    double xcoord, ycoord, zcoord;
+} VEC;
 
 typedef struct
 {
@@ -35,38 +15,29 @@ typedef struct
     long *b;
 } CONSTANTS;
 
-typedef struct
-{
-    double potentialX, potentialY, potentialZ;
-}POTENTIAL;
-
 //FUNCTION PROTOTYPES
 
-int initialise(CONSTANTS* c, POSITION** PositionArrayOld, POSITION** PositionArrayNew, POSITION** frames, const char* paramfile);			//Sets constants, allocates memory for array of pointers
+int initialise(CONSTANTS* c, VEC** PositionArrayOld, VEC** PositionArrayNew, VEC** frames, VEC** VECArray, VEC** BrownianArray, VEC** PotentialArray, const char* paramfile);			//Sets constants, allocates memory for array of pointers
 
-int CalcKnotPos(CONSTANTS c, POSITION* PositionArrayOld);
+int CalcKnotPos(CONSTANTS c, VEC* PositionArrayOld);
 
-int updateFrames(CONSTANTS c, int CurrentFrame, POSITION* frames, POSITION* positions);								//Writes current set of positions into frames, frames written to file at end
+int updateFrames(CONSTANTS c, int CurrentFrame, VEC* frames, VEC* positions);								//Writes current set of positions into frames, frames written to file at end
 
-int timestep(CONSTANTS c, POSITION* PositionArrayOld, POSITION* PositionArrayNew);									//Loop that calls Forces for each bead, will inc potential
+int timestep(CONSTANTS c, VEC* PositionArrayOld, VEC* PositionArrayNew, VEC* VECArray, VEC* BrownianArray, VEC* PotentialArray);						//Loop that calls Forces for each bead, will inc potential
 
-POSITION Forces(POSITION nMinusOnePos, POSITION nPosOld, POSITION nPosPlusOne, POSITION nPosNew, POSITION* PositionArrayOld,  CONSTANTS c, int i);		//Gives new pos from sum forces
+VEC FENEForce(VEC nMinusOnePos, VEC nPos, VEC nPosPlusOne, CONSTANTS c);
 
-POSITION ForcesLast(POSITION nMinusOnePos, POSITION nPosOld, POSITION nPosPlusOne, POSITION nPosNew, POSITION* PositionArrayOld, CONSTANTS c, int i);
-
-FENE FENEForce(POSITION nMinusOnePos, POSITION nPos, POSITION nPosPlusOne, CONSTANTS c);
-
-BROWNIAN Brownian(CONSTANTS c);
+VEC Brownian(CONSTANTS c);
 
 double GenGaussRand (CONSTANTS c);
 
-POTENTIAL potential(CONSTANTS c, POSITION* PositionArrayOld, int i);																//Lennard-Jones Potential
+VEC  potential(CONSTANTS c, VEC* PositionArrayOld, int i);																//Lennard-Jones Potential
 
-int writeVTF(CONSTANTS c, POSITION* frames);																		//Writes all bead positions to file after arrays finished
+int writeVTF(CONSTANTS c, VEC* frames);																		//Writes all bead positions to file after arrays finished
 
-int writeKnotAnalysis(CONSTANTS c, POSITION* frames);
+int writeKnotAnalysis(CONSTANTS c, VEC* frames);
 
-int finalise(CONSTANTS* c, POSITION** PositionArrayOld, POSITION** PositionArrayNew, POSITION** frames);			//frees memory
+int finalise(CONSTANTS* c, VEC** PositionArrayOld, VEC** PositionArrayNew, VEC** frames, VEC** VECArray, VEC** BrownianArray, VEC** PotentialArray);			//frees memory
 
 void die(const char* message, const int line, const char* file);
 
