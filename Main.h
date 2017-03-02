@@ -25,13 +25,13 @@ int updateFrames(CONSTANTS c, int CurrentFrame, VEC* frames, VEC* positions);			
 
 int timestep(CONSTANTS c, VEC* PositionArrayOld, VEC* PositionArrayNew, VEC* VECArray, VEC* BrownianArray, VEC* PotentialArray);						//Loop that calls Forces for each bead, will inc potential
 
-VEC FENEForce(VEC nMinusOnePos, VEC nPos, VEC nPosPlusOne, CONSTANTS c);
+VEC FENEForce(VEC nPos, VEC nPosPlusOne, CONSTANTS c);
 
 VEC Brownian(CONSTANTS c);
 
 double GenGaussRand (CONSTANTS c);
 
-VEC  potential(CONSTANTS c, VEC* PositionArrayOld, int i);																//Lennard-Jones Potential
+VEC  potential(CONSTANTS c, VEC* PositionArrayOld, VEC* PotentialArray, int i);																//Lennard-Jones Potential
 
 int writeVTF(CONSTANTS c, VEC* frames);																		//Writes all bead positions to file after arrays finished
 

@@ -18,8 +18,8 @@ int main(int argc, char *argv[]){
     VEC* PositionArrayNew;
     VEC* frames;
     VEC* FENEArray;
-    VEC * BrownianArray;
-    VEC * PotentialArray;
+    VEC* BrownianArray;
+    VEC* PotentialArray;
 
     char* paramfile = NULL;
 
@@ -142,22 +142,22 @@ int CalcKnotPos(CONSTANTS c, VEC* PositionArrayOld){
 
         if((i >= 0 && i < 15) || (i > 45 && i < c.N )){
           if(i >= 0 && i < 15){
-            PositionArrayOld[m].xcoord = i * (c.Q_0 * 0.8);
-            PositionArrayOld[m].ycoord = 0.0;
-            PositionArrayOld[m].zcoord = 0.0;
+            PositionArrayOld[i].xcoord = i * (c.Q_0 * 0.8);
+            PositionArrayOld[i].ycoord = 0.0;
+            PositionArrayOld[i].zcoord = 0.0;
           }
           else{
-            PositionArrayOld[m].xcoord = (i - 31) * (c.Q_0 * 0.8);
-            PositionArrayOld[m].ycoord = 0.0;
-            PositionArrayOld[m].zcoord = 0.0;
+            PositionArrayOld[i].xcoord = (i - 31) * (c.Q_0 * 0.8);
+            PositionArrayOld[i].ycoord = 0.0;
+            PositionArrayOld[i].zcoord = 0.0;
           }
         }
 
         else{
             fscanf(knot, "%d\t%lf\t%lf\t%lf", &beadnumber, &Testxcoord, &Testycoord, &Testzcoord);
-            PositionArrayOld[m].xcoord = 15 * (c.Q_0 * 0.8) + Testxcoord;
-            PositionArrayOld[m].ycoord = Testycoord;
-            PositionArrayOld[m].zcoord = Testzcoord;
+            PositionArrayOld[i].xcoord = 15 * (c.Q_0 * 0.8) + Testxcoord;
+            PositionArrayOld[i].ycoord = Testycoord;
+            PositionArrayOld[i].zcoord = Testzcoord;
         }
     }
 
@@ -168,7 +168,7 @@ int CalcKnotPos(CONSTANTS c, VEC* PositionArrayOld){
 int updateFrames(CONSTANTS c, int CurrentFrame, VEC* frames, VEC* positions){
     #pragma omp parallel for
     for (int i = 0; i < c.N; i++) {
-        frames[CurrentFrame*c.N + i] = positions[m];
+        frames[CurrentFrame*c.N + i] = positions[i];
     }
 
     return EXIT_SUCCESS;
@@ -180,15 +180,16 @@ int timestep(CONSTANTS c, VEC* PositionArrayOld, VEC* PositionArrayNew, VEC* FEN
     PositionArrayNew[0].ycoord = 0;
     PositionArrayNew[0].zcoord = 0;
 
+
+    FENEArray[0] = FENEForce(PositionArrayOld[0], PositionArrayOld[1], c);
     // #pragma omp parallel for
     int i;
-    for(i = 1; i < c.N; i ++) {
-
-        if(i == c.N-1){
-          FENEArray[m] = FENEForce(PositionArrayOld[i-1], PositionArrayOld[m], PositionArrayOld[m], c);
-        }
-        else FENEArray[m] = FENEForce(PositionArrayOld[i-1], PositionArrayOld[m], PositionArrayOld[i+1], c);
+    for(i = 1; i < c.N-1; i ++) {
+        FENEArray[i] = FENEForce(PositionArrayOld[i], PositionArrayOld[i+1], c);
     }
+
+    FENEArray[c.N-1] = FENEForce(PositionArrayOld[c.N-1], PositionArrayOld[c.N-1], c);
+
 
     // #pragma omp parallel for
     int j;
@@ -199,49 +200,38 @@ int timestep(CONSTANTS c, VEC* PositionArrayOld, VEC* PositionArrayNew, VEC* FEN
     // #pragma omp parallel for
     int k;
     for(k = 1; k < c.N; k ++) {
-        PotentialArray[k] = potential(c, PositionArrayOld, k);
+        PotentialArray[k] = potential(c, PositionArrayOld, PotentialArray, k);
     }
 
     // #pragma omp parallel for
     int m;
     for(m = 1; m < c.N; m ++) {
-        PositionArrayNew[m].xcoord = PositionArrayOld[m].xcoord + c.h*((FENEArray[m].xcoord + BrownianArray[m].xcoord + PotentialArray[m].xcoord)/c.eta);
+        PositionArrayNew[m].xcoord = PositionArrayOld[m].xcoord + c.h*((FENEArray[m].xcoord - FENEArray[m-1].xcoord + BrownianArray[m].xcoord + PotentialArray[m].xcoord)/c.eta);
 
-        PositionArrayNew[m].ycoord = PositionArrayOld[m].ycoord + c.h*((FENEArray[m].ycoord + BrownianArray[m].ycoord + PotentialArray[m].ycoord)/c.eta);
+        PositionArrayNew[m].ycoord = PositionArrayOld[m].ycoord + c.h*((FENEArray[m].ycoord - FENEArray[m-1].ycoord + BrownianArray[m].ycoord + PotentialArray[m].ycoord)/c.eta);
 
-        PositionArrayNew[m].zcoord = PositionArrayOld[m].zcoord + c.h*((FENEArray[m].zcoord + BrownianArray[m].zcoord + PotentialArray[m].zcoord)/c.eta);
+        PositionArrayNew[m].zcoord = PositionArrayOld[m].zcoord + c.h*((FENEArray[m].zcoord - FENEArray[m-1].zcoord + BrownianArray[m].zcoord + PotentialArray[m].zcoord)/c.eta);
     }
     return EXIT_SUCCESS;
 }
 
-VEC FENEForce(VEC nMinusOnePos, VEC nPos, VEC nPosPlusOne, CONSTANTS c){
+VEC FENEForce(VEC nPos, VEC nPosPlusOne, CONSTANTS c){
     VEC FENEForces;
 
-    double TotalSep1 = sqrt(pow(nPosPlusOne.xcoord - nPos.xcoord, 2) + pow(nPosPlusOne.ycoord - nPos.ycoord, 2) + pow(nPosPlusOne.zcoord - nPos.zcoord, 2));
+    double TotalSep = sqrt(pow(nPosPlusOne.xcoord - nPos.xcoord, 2) + pow(nPosPlusOne.ycoord - nPos.ycoord, 2) + pow(nPosPlusOne.zcoord - nPos.zcoord, 2));
 
-    double TotalSep2 = sqrt(pow(nPos.xcoord - nMinusOnePos.xcoord, 2) + pow(nPos.ycoord - nMinusOnePos.ycoord, 2) + pow(nPos.zcoord - nMinusOnePos.zcoord, 2));
+    double Q_x = nPosPlusOne.xcoord - nPos.xcoord;
+    double x = (c.H * Q_x) / (1 - ((TotalSep*TotalSep)/ (c.MaxExtension * c.MaxExtension)));
 
-    double Q_x1 = nPosPlusOne.xcoord - nPos.xcoord;
-    double x1 = (c.H * Q_x1) / (1 - ((TotalSep1*TotalSep1)/ (c.MaxExtension * c.MaxExtension)));                             //Q_x1 is bond length for x & right, x2 left, y in y-dir etc
+    double Q_y = nPosPlusOne.ycoord - nPos.ycoord;
+    double y = (c.H * Q_y) / (1 - ((TotalSep*TotalSep)/ (c.MaxExtension * c.MaxExtension)));
 
-    double Q_x2 = nPos.xcoord - nMinusOnePos.xcoord;
-    double x2 = (c.H * Q_x2) / (1 - ((TotalSep2*TotalSep2)/ (c.MaxExtension * c.MaxExtension)));                           //Values usually between -10 & 10 -- -297 on one run?
+    double Q_z = nPosPlusOne.zcoord - nPos.zcoord;
+    double z = (c.H * Q_z) / (1 - ((TotalSep*TotalSep)/ (c.MaxExtension * c.MaxExtension)));
 
-    double Q_y1 = nPosPlusOne.ycoord - nPos.ycoord;
-    double y1 = (c.H * Q_y1) / (1 - ((TotalSep1*TotalSep1)/ (c.MaxExtension * c.MaxExtension)));
-
-    double Q_y2 = nPos.ycoord - nMinusOnePos.ycoord;
-    double y2 = (c.H * Q_y2) / (1 - ((TotalSep2*TotalSep2)/ (c.MaxExtension * c.MaxExtension)));
-
-    double Q_z1 = nPosPlusOne.zcoord - nPos.zcoord;
-    double z1 = (c.H * Q_z1) / (1 - ((TotalSep1*TotalSep1)/ (c.MaxExtension * c.MaxExtension)));
-
-    double Q_z2 = nPos.zcoord - nMinusOnePos.zcoord;
-    double z2 = (c.H * Q_z2) / (1 - ((TotalSep2*TotalSep2)/ (c.MaxExtension * c.MaxExtension)));
-
-    FENEForces.xcoord = x1 - x2;
-    FENEForces.ycoord = y1 - y2;
-    FENEForces.zcoord = z1 - z2;
+    FENEForces.xcoord = x;
+    FENEForces.ycoord = y;
+    FENEForces.zcoord = z;
 
     return FENEForces;
 }
@@ -256,7 +246,7 @@ VEC  Brownian(CONSTANTS c){
     return BrownianForces;
 }
 
-VEC potential(CONSTANTS c, VEC* PositionArrayOld, int i){
+VEC potential(CONSTANTS c, VEC* PositionArrayOld, VEC* PotentialArray, int i){
     double sepX, sepY, sepZ, TotalSep, epsilon, sigma, potX, potY, potZ;
     VEC  pot;
 
@@ -268,35 +258,29 @@ VEC potential(CONSTANTS c, VEC* PositionArrayOld, int i){
     pot.zcoord = 0.0;
 
     #pragma omp parallel for
-    for(int j = 0; j < c.N; j++)
+    for(int j = (i+1); j < c.N; j++)
     {
-        if(j == i){
-          potX = 0.0;
-          potY = 0.0;
-          potZ = 0.0;
-        }
-
-        else{
-        sepX = PositionArrayOld[m].xcoord - PositionArrayOld[j].xcoord;
-        sepY = PositionArrayOld[m].ycoord - PositionArrayOld[j].ycoord;
-        sepZ = PositionArrayOld[m].zcoord - PositionArrayOld[j].zcoord;
+        sepX = PositionArrayOld[i].xcoord - PositionArrayOld[j].xcoord;
+        sepY = PositionArrayOld[i].ycoord - PositionArrayOld[j].ycoord;
+        sepZ = PositionArrayOld[i].zcoord - PositionArrayOld[j].zcoord;
         TotalSep = sqrt( sepX*sepX + sepY*sepY + sepZ*sepZ );
 
-        if(TotalSep != 0){
-          potX = (5*(epsilon) * sepX * (pow(sigma, 5)/pow(TotalSep, 7)))/AvogadroNum;
-          potY = (5*(epsilon) * sepY * (pow(sigma, 5)/pow(TotalSep, 7)))/AvogadroNum;
-          potZ = (5*(epsilon) * sepZ * (pow(sigma, 5)/pow(TotalSep, 7)))/AvogadroNum;
-        }
-
-        else die("Molecule separation is 0", __LINE__, __FILE__);
+        potX = (5*(epsilon) * sepX * (pow(sigma, 5)/pow(TotalSep, 7)))/AvogadroNum;
+        potY = (5*(epsilon) * sepY * (pow(sigma, 5)/pow(TotalSep, 7)))/AvogadroNum;
+        potZ = (5*(epsilon) * sepZ * (pow(sigma, 5)/pow(TotalSep, 7)))/AvogadroNum;
 
         pot.xcoord += potX;
         pot.ycoord += potY;
         pot.zcoord += potZ;
 
-      }
-
     }
+
+    for(int j = (i-1); j >= 0; j--){
+        pot.xcoord -= PotentialArray[j].xcoord;
+        pot.ycoord -= PotentialArray[j].ycoord;
+        pot.zcoord -= PotentialArray[j].zcoord;
+    }
+
     return pot;
 }
 
