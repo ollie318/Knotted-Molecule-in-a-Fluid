@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
+#include <omp.h>
 #include "Main.h"
 #include "random.h"
 #include "KnotAnalysis.h"
@@ -20,6 +21,7 @@ int main(int argc, char *argv[]){
     VEC* FENEArray;
     VEC* BrownianArray;
     VEC* PotentialArray;
+    long** seed;
 
     char* paramfile = NULL;
 
@@ -34,7 +36,7 @@ int main(int argc, char *argv[]){
     for(loopcount = 0; loopcount < c.maxIters; loopcount++){
 
         updateFrames(c, loopcount, frames, PositionArrayOld);
-        timestep(c, PositionArrayOld, PositionArrayNew, FENEArray, BrownianArray, PotentialArray);
+        timestep(c, PositionArrayOld, PositionArrayNew, FENEArray, BrownianArray, PotentialArray, seed);
 
         for(int j = 1; j < c.N; j ++){
             PositionArrayOld[j] = PositionArrayNew[j];
@@ -120,7 +122,7 @@ int initialise(CONSTANTS* c, VEC** PositionArrayOld, VEC** PositionArrayNew, VEC
     (*PotentialArray) = (VEC *) malloc(sizeof(VEC) * c->N);
     if(PotentialArray == NULL) die("cannot allocate memory for PotentialArray", __LINE__, __FILE__);
 
-    (*PositionArrayOld)[0].xcoord = 0;                                         //Initialising pos1 to 0,0,0
+    (*PositionArrayOld)[0].xcoord = 0;           //Initialising pos1 to 0,0,0
     (*PositionArrayOld)[0].ycoord = 0;
     (*PositionArrayOld)[0].zcoord = 0;
 
@@ -136,8 +138,9 @@ int CalcKnotPos(CONSTANTS c, VEC* PositionArrayOld){
 
     if(knot == NULL) die("cannot find knot coordinate file", __LINE__, __FILE__);
 
+    double Testxcoord = 0.0, Testycoord = 0.0, Testzcoord = 0.0;
+
     for(int i = 0; i < c.N; i++){
-        double Testxcoord = 0.0, Testycoord = 0.0, Testzcoord = 0.0;
         int beadnumber;
 
         if((i >= 0 && i < 15) || (i > 45 && i < c.N )){
@@ -148,8 +151,8 @@ int CalcKnotPos(CONSTANTS c, VEC* PositionArrayOld){
           }
           else{
             PositionArrayOld[i].xcoord = (i - 31) * (c.Q_0 * 0.8);
-            PositionArrayOld[i].ycoord = 0.0;
-            PositionArrayOld[i].zcoord = 0.0;
+            PositionArrayOld[i].ycoord = Testycoord;
+            PositionArrayOld[i].zcoord = Testzcoord;
           }
         }
 
@@ -174,44 +177,50 @@ int updateFrames(CONSTANTS c, int CurrentFrame, VEC* frames, VEC* positions){
     return EXIT_SUCCESS;
 }
 
-int timestep(CONSTANTS c, VEC* PositionArrayOld, VEC* PositionArrayNew, VEC* FENEArray, VEC* BrownianArray, VEC* PotentialArray){
+int timestep(CONSTANTS c, VEC* PositionArrayOld, VEC* PositionArrayNew, VEC* FENEArray, VEC* BrownianArray, VEC* PotentialArray, long** seed){
 
     PositionArrayNew[0].xcoord = 0;
     PositionArrayNew[0].ycoord = 0;
     PositionArrayNew[0].zcoord = 0;
 
-
     FENEArray[0] = FENEForce(PositionArrayOld[0], PositionArrayOld[1], c);
-    // #pragma omp parallel for
-    int i;
-    for(i = 1; i < c.N-1; i ++) {
+
+    #pragma omp parallel for
+    for(int i = 1; i < c.N-1; i ++) {
         FENEArray[i] = FENEForce(PositionArrayOld[i], PositionArrayOld[i+1], c);
     }
 
     FENEArray[c.N-1] = FENEForce(PositionArrayOld[c.N-1], PositionArrayOld[c.N-1], c);
 
 
-    // #pragma omp parallel for
-    int j;
-    for(j = 1; j < c.N; j ++) {
-        BrownianArray[j] = Brownian(c);
+    #pragma omp parallel
+    {
+    #pragma omp single
+    {
+    int omp_get_num_threads();
+    initialiseseed(omp_get_num_threads(), seed, c);
+    }
+    #pragma omp for
+    for(int j = 1; j < c.N; j ++) {
+        int tid = omp_get_thread_num();
+        BrownianArray[j] = Brownian(seed, c, tid);
+    }
     }
 
-    // #pragma omp parallel for
-    int k;
-    for(k = 1; k < c.N; k ++) {
+    #pragma omp parallel for
+    for(int k = 1; k < c.N; k ++) {
         PotentialArray[k] = potential(c, PositionArrayOld, PotentialArray, k);
     }
 
-    // #pragma omp parallel for
-    int m;
-    for(m = 1; m < c.N; m ++) {
+    #pragma omp parallel for
+    for(int m = 1; m < c.N; m ++) {
         PositionArrayNew[m].xcoord = PositionArrayOld[m].xcoord + c.h*((FENEArray[m].xcoord - FENEArray[m-1].xcoord + BrownianArray[m].xcoord + PotentialArray[m].xcoord)/c.eta);
 
         PositionArrayNew[m].ycoord = PositionArrayOld[m].ycoord + c.h*((FENEArray[m].ycoord - FENEArray[m-1].ycoord + BrownianArray[m].ycoord + PotentialArray[m].ycoord)/c.eta);
 
         PositionArrayNew[m].zcoord = PositionArrayOld[m].zcoord + c.h*((FENEArray[m].zcoord - FENEArray[m-1].zcoord + BrownianArray[m].zcoord + PotentialArray[m].zcoord)/c.eta);
     }
+
     return EXIT_SUCCESS;
 }
 
@@ -236,12 +245,26 @@ VEC FENEForce(VEC nPos, VEC nPosPlusOne, CONSTANTS c){
     return FENEForces;
 }
 
-VEC  Brownian(CONSTANTS c){
+long** initialiseseed(int numseeds, long** seed, CONSTANTS c){
+    **seed = (long**) malloc(2.0 * sizeof(long*));
+    int i;
+    for(i = 0; i < 2; i++){
+      seed[i] = (long*) malloc(numseeds * sizeof(long));
+    }
+    int j;
+    for(j = 0; j < numseeds; j++){
+      seed[0][j] = c.a;
+    }
+
+    return seed;
+}
+
+VEC  Brownian(long** seed, CONSTANTS c, int tid){
     VEC BrownianForces;
 
-    BrownianForces.xcoord = sqrt((6 * Boltzmann * c.T*c.eta)/c.h) * GenGaussRand(c);            //random number from 1 to -1, Gaussian distribution
-    BrownianForces.ycoord = sqrt((6 * Boltzmann * c.T*c.eta)/c.h) * GenGaussRand(c);
-    BrownianForces.zcoord = sqrt((6 * Boltzmann * c.T*c.eta)/c.h) * GenGaussRand(c);            //On the scale E-2
+    BrownianForces.xcoord = sqrt((6 * Boltzmann * c.T*c.eta)/c.h) * GenGaussRand(seed, c, tid);            //random number from 1 to -1, Gaussian distribution
+    BrownianForces.ycoord = sqrt((6 * Boltzmann * c.T*c.eta)/c.h) * GenGaussRand(seed, c, tid);
+    BrownianForces.zcoord = sqrt((6 * Boltzmann * c.T*c.eta)/c.h) * GenGaussRand(seed, c, tid);            //On the scale E-2
 
     return BrownianForces;
 }
@@ -346,11 +369,11 @@ int writeKnotAnalysis(CONSTANTS c, VEC* frames){
     return EXIT_SUCCESS;
 }
 
-double GenGaussRand(CONSTANTS c){
+double GenGaussRand(long** seed, CONSTANTS c, int tid){
     double OutputGauss_1;
 
-    double input_1 = ran2(c.b);
-    double input_2 = ran2(c.b);
+    double input_1 = ran2(&(seed[0][tid]));
+    double input_2 = ran2(&(seed[0][tid]));
 
     OutputGauss_1 = sqrt(-2 * log(input_1) ) * cos(2 * pi * input_2);          //If using a standard Gaussian
 
