@@ -213,11 +213,12 @@ int timestep(CONSTANTS c, VEC* PositionArrayOld, VEC* PositionArrayNew, VEC* FEN
     /*Again can be run in parallel, but issues arise when generating random number as all threads need access do different seeds*/
     #pragma omp parallel
     {
+    int numofthreads = omp_get_num_threads();
+
     /*Inside the prarllel section as we need to know the number of threads however, we only want one thread to initialise the seed array*/
     #pragma omp single
     {
-    int omp_get_num_threads();
-    initialiseseed(omp_get_num_threads(), &seed, c);
+    initialiseseed(numofthreads, &seed, c);
     }
     #pragma omp for
     for(int j = 1; j < c.N; j ++) {
