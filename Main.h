@@ -24,15 +24,15 @@ int CalcKnotPos(CONSTANTS c, VEC* PositionArrayOld);
 
 int updateFrames(CONSTANTS c, int CurrentFrame, VEC* frames, VEC* positions);								//Writes current set of positions into frames, frames written to file at end
 
-int timestep(CONSTANTS c, VEC* PositionArrayOld, VEC* PositionArrayNew, VEC* VECArray, VEC* BrownianArray, VEC* PotentialArray, long** seed);						//Loop that calls Forces for each bead, will inc potential
+int timestep(CONSTANTS c, VEC* PositionArrayOld, VEC* PositionArrayNew, VEC* VECArray, VEC* BrownianArray, VEC* PotentialArray, long* seed);						//Loop that calls Forces for each bead, will inc potential
 
 VEC FENEForce(VEC nPos, VEC nPosPlusOne, CONSTANTS c);
 
-long** initialiseseed(int numseeds, long** seed, CONSTANTS c);
+int initialiseseed(int numseeds, long** seed, CONSTANTS c);
 
-VEC Brownian(long** seed, CONSTANTS c, int tid);
+VEC Brownian(long* seed, CONSTANTS c, int tid);
 
-double GenGaussRand (long** seed, CONSTANTS c, int tid);
+double GenGaussRand (long* seed, CONSTANTS c, int tid);
 
 VEC  potential(CONSTANTS c, VEC* PositionArrayOld, VEC* PotentialArray, int i);																//Lennard-Jones Potential
 

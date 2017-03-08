@@ -14,35 +14,38 @@
 
 int main(int argc, char *argv[]){
 
-    CONSTANTS c;
-    VEC* PositionArrayOld;
-    VEC* PositionArrayNew;
-    VEC* frames;
-    VEC* FENEArray;
-    VEC* BrownianArray;
-    VEC* PotentialArray;
-    long** seed;
+    CONSTANTS c;                /*Contains any variables that do not change*/
+    VEC* PositionArrayOld;      /*Poisitons from previous timestep*/
+    VEC* PositionArrayNew;      /*New positions calculated from previous array*/
+    VEC* frames;                /*Stores every timestep for writing to file at the end*/
+    VEC* FENEArray;             /*Stores FENE Forces for each bead*/
+    VEC* BrownianArray;         /*Stores Brownian forces for each bead*/
+    VEC* PotentialArray;        /*Stores the potential force for each bead*/
+    long* seed;                 /*Ensures that each thread uses a different seed for Brownian motion*/
 
-    char* paramfile = NULL;
+    char* paramfile = NULL;     /*Name of parameter file*/
 
     if(argc != 2){
       die("Please use: ./a.out <paramfile>\n", __LINE__, __FILE__);
     }
     else paramfile = argv[1];
 
+    /*Allocate memory for arrays, read in parameter values from file and assign values to constants array*/
     initialise(&c, &PositionArrayOld, &PositionArrayNew, &frames, &FENEArray, &BrownianArray, &PotentialArray, paramfile);
 
+    /*Iterates the program for the number of max number of iterations*/
     int loopcount;
     for(loopcount = 0; loopcount < c.maxIters; loopcount++){
-
+        /*Adds coordinates to frame file*/
         updateFrames(c, loopcount, frames, PositionArrayOld);
+        /*Applies forces to previous array to calculate new positions*/
         timestep(c, PositionArrayOld, PositionArrayNew, FENEArray, BrownianArray, PotentialArray, seed);
-
+        /*Copies new positions to old array for the next timestep*/
         for(int j = 1; j < c.N; j ++){
             PositionArrayOld[j] = PositionArrayNew[j];
         }
     }
-
+    /*Write values to files and free up any memory*/
     writeVTF(c, frames);
     writeKnotAnalysis(c, frames);
     finalise(&c, &PositionArrayOld, &PositionArrayNew, &frames, &FENEArray, &BrownianArray, &PotentialArray);
@@ -50,8 +53,10 @@ int main(int argc, char *argv[]){
     return 0;
 }
 
+/*Loads parameters from file and allocates memory for all of the arrays except the seed array*/
+
 int initialise(CONSTANTS* c, VEC** PositionArrayOld, VEC** PositionArrayNew, VEC** frames, VEC** FENEArray, VEC** BrownianArray, VEC** PotentialArray, const char* paramfile){
-    // array constants
+    /*Opens parameter file and reads in values for constants*/
     FILE* params;
     params = fopen(paramfile, "r");
 
@@ -101,8 +106,8 @@ int initialise(CONSTANTS* c, VEC** PositionArrayOld, VEC** PositionArrayNew, VEC
     c->Q_0 = c->N_ks * c->b_k;
 
     c->MaxExtension = c->L_s;
-    c->a = -475896;
-    c->b = &(c->a);
+
+    /*Memory allocated*/
 
     (*PositionArrayOld) = (VEC*) malloc(sizeof(VEC) * c->N);
     if(PositionArrayOld == NULL) die("cannot allocate memory for PositionArrayOld", __LINE__, __FILE__);
@@ -126,10 +131,14 @@ int initialise(CONSTANTS* c, VEC** PositionArrayOld, VEC** PositionArrayNew, VEC
     (*PositionArrayOld)[0].ycoord = 0;
     (*PositionArrayOld)[0].zcoord = 0;
 
+    /*Sets positions for first timestep using knot coordinates from file*/
+
     CalcKnotPos(*c, *PositionArrayOld);
 
     return EXIT_SUCCESS;
 }
+
+/*Loads the coordinates of the knot from file and adds straight sections of chain onto either end of the knot*/
 
 int CalcKnotPos(CONSTANTS c, VEC* PositionArrayOld){
 
@@ -143,6 +152,7 @@ int CalcKnotPos(CONSTANTS c, VEC* PositionArrayOld){
     for(int i = 0; i < c.N; i++){
         int beadnumber;
 
+        /*Adds a straight chain of 15 beads to either side of the knot*/
         if((i >= 0 && i < 15) || (i > 45 && i < c.N )){
           if(i >= 0 && i < 15){
             PositionArrayOld[i].xcoord = i * (c.Q_0 * 0.8);
@@ -155,7 +165,7 @@ int CalcKnotPos(CONSTANTS c, VEC* PositionArrayOld){
             PositionArrayOld[i].zcoord = Testzcoord;
           }
         }
-
+        /*Uses knot coordinates, x position is multiplied by number of beads in previous straight chain so they are in the centre of the knot*/
         else{
             fscanf(knot, "%d\t%lf\t%lf\t%lf", &beadnumber, &Testxcoord, &Testycoord, &Testzcoord);
             PositionArrayOld[i].xcoord = 15 * (c.Q_0 * 0.8) + Testxcoord;
@@ -168,6 +178,8 @@ int CalcKnotPos(CONSTANTS c, VEC* PositionArrayOld){
 
 }
 
+/*Instead of writing to file every iteration, we are storing every timestep in an array. This array is updated after ecah timestep*/
+
 int updateFrames(CONSTANTS c, int CurrentFrame, VEC* frames, VEC* positions){
     #pragma omp parallel for
     for (int i = 0; i < c.N; i++) {
@@ -177,31 +189,39 @@ int updateFrames(CONSTANTS c, int CurrentFrame, VEC* frames, VEC* positions){
     return EXIT_SUCCESS;
 }
 
-int timestep(CONSTANTS c, VEC* PositionArrayOld, VEC* PositionArrayNew, VEC* FENEArray, VEC* BrownianArray, VEC* PotentialArray, long** seed){
+/*Contains all the forces acting upon the particles, shown in order below*/
 
-    PositionArrayNew[0].xcoord = 0;
-    PositionArrayNew[0].ycoord = 0;
-    PositionArrayNew[0].zcoord = 0;
+int timestep(CONSTANTS c, VEC* PositionArrayOld, VEC* PositionArrayNew, VEC* FENEArray, VEC* BrownianArray, VEC* PotentialArray, long* seed){
 
+    /*Ensures the first bead does not move as the chain is tethered*/
+    PositionArrayNew[0].xcoord = 0.0;
+    PositionArrayNew[0].ycoord = 0.0;
+    PositionArrayNew[0].zcoord = 0.0;
+
+    /*For FENE forces, we calculate the force between bead i and i+1. The force from i to i-1 is the negative of i-1 to i*/
     FENEArray[0] = FENEForce(PositionArrayOld[0], PositionArrayOld[1], c);
 
+    /*Section can be run in parallel as positions are not changed*/
     #pragma omp parallel for
     for(int i = 1; i < c.N-1; i ++) {
         FENEArray[i] = FENEForce(PositionArrayOld[i], PositionArrayOld[i+1], c);
     }
 
+    /*Final bead has no bead after it, so same array is passed in twice to make force 0*/
     FENEArray[c.N-1] = FENEForce(PositionArrayOld[c.N-1], PositionArrayOld[c.N-1], c);
 
-
+    /*Again can be run in parallel, but issues arise when generating random number as all threads need access do different seeds*/
     #pragma omp parallel
     {
+    /*Inside the prarllel section as we need to know the number of threads however, we only want one thread to initialise the seed array*/
     #pragma omp single
     {
     int omp_get_num_threads();
-    initialiseseed(omp_get_num_threads(), seed, c);
+    initialiseseed(omp_get_num_threads(), &seed, c);
     }
     #pragma omp for
     for(int j = 1; j < c.N; j ++) {
+        /*Thread id passed through to random number generator so correct seed is used*/
         int tid = omp_get_thread_num();
         BrownianArray[j] = Brownian(seed, c, tid);
     }
@@ -212,6 +232,7 @@ int timestep(CONSTANTS c, VEC* PositionArrayOld, VEC* PositionArrayNew, VEC* FEN
         PotentialArray[k] = potential(c, PositionArrayOld, PotentialArray, k);
     }
 
+    /*All of the forces calculated are then summed and applied using Euler's method*/
     #pragma omp parallel for
     for(int m = 1; m < c.N; m ++) {
         PositionArrayNew[m].xcoord = PositionArrayOld[m].xcoord + c.h*((FENEArray[m].xcoord - FENEArray[m-1].xcoord + BrownianArray[m].xcoord + PotentialArray[m].xcoord)/c.eta);
@@ -227,6 +248,7 @@ int timestep(CONSTANTS c, VEC* PositionArrayOld, VEC* PositionArrayNew, VEC* FEN
 VEC FENEForce(VEC nPos, VEC nPosPlusOne, CONSTANTS c){
     VEC FENEForces;
 
+    /*Finds the total seperation between the beads. The seperation in each coordinate is also found and FENE calculated and assigned to the FENE array*/
     double TotalSep = sqrt(pow(nPosPlusOne.xcoord - nPos.xcoord, 2) + pow(nPosPlusOne.ycoord - nPos.ycoord, 2) + pow(nPosPlusOne.zcoord - nPos.zcoord, 2));
 
     double Q_x = nPosPlusOne.xcoord - nPos.xcoord;
@@ -245,21 +267,7 @@ VEC FENEForce(VEC nPos, VEC nPosPlusOne, CONSTANTS c){
     return FENEForces;
 }
 
-long** initialiseseed(int numseeds, long** seed, CONSTANTS c){
-    **seed = (long**) malloc(2.0 * sizeof(long*));
-    int i;
-    for(i = 0; i < 2; i++){
-      seed[i] = (long*) malloc(numseeds * sizeof(long));
-    }
-    int j;
-    for(j = 0; j < numseeds; j++){
-      seed[0][j] = c.a;
-    }
-
-    return seed;
-}
-
-VEC  Brownian(long** seed, CONSTANTS c, int tid){
+VEC  Brownian(long* seed, CONSTANTS c, int tid){
     VEC BrownianForces;
 
     BrownianForces.xcoord = sqrt((6 * Boltzmann * c.T*c.eta)/c.h) * GenGaussRand(seed, c, tid);            //random number from 1 to -1, Gaussian distribution
@@ -273,13 +281,14 @@ VEC potential(CONSTANTS c, VEC* PositionArrayOld, VEC* PotentialArray, int i){
     double sepX, sepY, sepZ, TotalSep, epsilon, sigma, potX, potY, potZ;
     VEC  pot;
 
-    sigma = 2 * c.BeadRadi;                                           //r where attraction/repulsion changes
-    epsilon = 1.0;                                                    //Depth of the weakly attractive well for atom
+    sigma = 2 * c.BeadRadi;         /*r where attraction/repulsion changes*/
+    epsilon = 1.0;                  /*Depth of the weakly attractive well for atom*/
 
     pot.xcoord = 0.0;
     pot.ycoord = 0.0;
     pot.zcoord = 0.0;
 
+    /*Bead i finds the potential for bead i+n. For i-n, we use the negative of that previously calculated*/
     #pragma omp parallel for
     for(int j = (i+1); j < c.N; j++)
     {
@@ -288,16 +297,19 @@ VEC potential(CONSTANTS c, VEC* PositionArrayOld, VEC* PotentialArray, int i){
         sepZ = PositionArrayOld[i].zcoord - PositionArrayOld[j].zcoord;
         TotalSep = sqrt( sepX*sepX + sepY*sepY + sepZ*sepZ );
 
+        /*Potential is found for each axis*/
         potX = (5*(epsilon) * sepX * (pow(sigma, 5)/pow(TotalSep, 7)))/AvogadroNum;
         potY = (5*(epsilon) * sepY * (pow(sigma, 5)/pow(TotalSep, 7)))/AvogadroNum;
         potZ = (5*(epsilon) * sepZ * (pow(sigma, 5)/pow(TotalSep, 7)))/AvogadroNum;
 
+        /*The potential from i to i+n is added to an overall potential force. This applies only to i+n*/
         pot.xcoord += potX;
         pot.ycoord += potY;
         pot.zcoord += potZ;
 
     }
 
+    /*For i-n we use the negative of i+n found above*/
     for(int j = (i-1); j >= 0; j--){
         pot.xcoord -= PotentialArray[j].xcoord;
         pot.ycoord -= PotentialArray[j].ycoord;
@@ -307,12 +319,13 @@ VEC potential(CONSTANTS c, VEC* PositionArrayOld, VEC* PotentialArray, int i){
     return pot;
 }
 
-int writeVTF(CONSTANTS c, VEC* frames){
+/*The array of frames is then printed to file*/
 
+int writeVTF(CONSTANTS c, VEC* frames){
+    /*VTF file for use with VMD*/
     FILE* File_BeadPos;
     File_BeadPos = fopen("File_BeadPos.vtf", "w");
     if(File_BeadPos == NULL) die("Bead coordinate file could not be opened", __LINE__, __FILE__);
-
     fprintf(File_BeadPos, "atom 0:%d\tradius 1.0\tname S\n" , c.N);
 
     int k;
@@ -320,7 +333,7 @@ int writeVTF(CONSTANTS c, VEC* frames){
         fprintf(File_BeadPos, "bond %d:%d\n", k, k+1);
     }
 
-    int j;								//j represents number of one bead
+    int j;				//j represents number of one bead
     for(j = 0; j < c.N*c.maxIters; j++)
     {
         if (j%c.N == 0)
@@ -332,6 +345,8 @@ int writeVTF(CONSTANTS c, VEC* frames){
 
     return EXIT_SUCCESS;
 }
+
+/*Using a Knot analysis program provided by Simon Hanna, the knots properties such as position, length and size are printed. Note this is done for every 10th frame*/
 
 int writeKnotAnalysis(CONSTANTS c, VEC* frames){
     FILE* KnotAnalysis;
@@ -349,36 +364,28 @@ int writeKnotAnalysis(CONSTANTS c, VEC* frames){
         chain[3*i + 1] = p.ycoord;
         chain[3*i + 2] = p.zcoord;
       }
-    }
+
 
       fprintf(KnotAnalysis, "Start\tEnd\tPosition\n" );
 
-    // jKN* PolymerKnot;
-    // PolymerKnot = jKN_alloc(chain, c.N);
-    // KnotScan(PolymerKnot);
-    // if (PolymerKnot->state>0){
-    //     double kstart, kend, kpos;
-		// 		kstart = floor(0.5+PolymerKnot->start)+1;
-		// 		kend = floor(0.5+PolymerKnot->end)+1;
-		// 		kpos = floor(0.5+PolymerKnot->position)+1;
-    //     fprintf(KnotAnalysis, "%lf\t%lf\t%lf\n", kstart, kend, kpos);
-    // }
-    // else fprintf(KnotAnalysis, "state = 0");
+        jKN* PolymerKnot;
+        PolymerKnot = jKN_alloc(chain, c.N);
+        KnotScan(PolymerKnot);
+        if (PolymerKnot->state>0){
+            double kstart, kend, kpos;
+    				kstart = floor(0.5+PolymerKnot->start)+1;
+    				kend = floor(0.5+PolymerKnot->end)+1;
+    				kpos = floor(0.5+PolymerKnot->position)+1;
+            fprintf(KnotAnalysis, "%lf\t%lf\t%lf\n", kstart, kend, kpos);
+        }
+        else fprintf(KnotAnalysis, "state = 0");
+    }
 
     fclose(KnotAnalysis);
     return EXIT_SUCCESS;
 }
 
-double GenGaussRand(long** seed, CONSTANTS c, int tid){
-    double OutputGauss_1;
-
-    double input_1 = ran2(&(seed[0][tid]));
-    double input_2 = ran2(&(seed[0][tid]));
-
-    OutputGauss_1 = sqrt(-2 * log(input_1) ) * cos(2 * pi * input_2);          //If using a standard Gaussian
-
-    return OutputGauss_1;
-}
+/*Any allocated memory if finally freed*/
 
 int finalise(CONSTANTS* c, VEC** PositionArrayOld, VEC** PositionArrayNew, VEC** frames, VEC** FENEArray, VEC** BrownianArray, VEC** PotentialArray){
     free(*PositionArrayOld);
@@ -394,6 +401,32 @@ int finalise(CONSTANTS* c, VEC** PositionArrayOld, VEC** PositionArrayNew, VEC**
     free(*PotentialArray);
     *PotentialArray = NULL;
 
+    return EXIT_SUCCESS;
+}
+
+/*Utility functions for the random numbers and for dealing with errors*/
+
+double GenGaussRand(long* seed, CONSTANTS c, int tid){
+    double OutputGauss_1;
+
+    double input_1 = ran2(&seed[tid + 1]);
+    double input_2 = ran2(&seed[tid + 1]);
+
+    OutputGauss_1 = sqrt(-2 * log(input_1) ) * cos(2 * pi * input_2);          //If using a standard Gaussian
+
+    return OutputGauss_1;
+}
+
+int initialiseseed(int numseeds, long** seed, CONSTANTS c){
+    (*seed) = (long*) malloc(numseeds * 2.0 * sizeof(long));
+    if(seed == NULL) die("cannot allocate memory for seeds", __LINE__, __FILE__);
+    int i;
+    int count = 0;
+    for(i = 0; i+2; i < 2*numseeds){
+        *(seed[i]) = count;
+        *(seed[i + 1]) = -56789*i;
+        count++;
+    }
     return EXIT_SUCCESS;
 }
 
