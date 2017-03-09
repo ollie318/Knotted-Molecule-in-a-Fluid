@@ -9,7 +9,7 @@ typedef struct
 typedef struct
 {
     double BeadRadi, FluidViscos, h, T, D, FlowVel, H, m, Q_0;
-    double N_k, N_ks, b_k, L_s, eta, MaxExtension, StokesFric;
+    double N_k, N_ks, b_k, L_s, eta, MaxExtension;
     int N, maxIters;
     long a;
     long *b;
