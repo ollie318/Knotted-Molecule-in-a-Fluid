@@ -18,7 +18,7 @@ typedef struct
 
 //FUNCTION PROTOTYPES
 
-int initialise(CONSTANTS* c, VEC** PositionArrayOld, VEC** PositionArrayNew, VEC** frames, VEC** VECArray, VEC** BrownianArray, VEC** PotentialArray, const char* paramfile);			//Sets constants, allocates memory for array of pointers
+int initialise(CONSTANTS* c, VEC** PositionArrayOld, VEC** PositionArrayNew, VEC** frames, VEC** VECArray, VEC** BrownianArray, VEC** PotentialArray, long** seed, const char* paramfile);			//Sets constants, allocates memory for array of pointers
 
 int CalcKnotPos(CONSTANTS c, VEC* PositionArrayOld);
 
@@ -28,11 +28,9 @@ int timestep(CONSTANTS c, VEC* PositionArrayOld, VEC* PositionArrayNew, VEC* VEC
 
 VEC FENEForce(VEC nPos, VEC nPosPlusOne, CONSTANTS c);
 
-int initialiseseed(int numseeds, long** seed, CONSTANTS c);
+VEC Brownian(CONSTANTS c, long* seednum);
 
-VEC Brownian(long* seed, CONSTANTS c, int tid);
-
-double GenGaussRand (long* seed, CONSTANTS c, int tid);
+double GenGaussRand (CONSTANTS c, long* seednum);
 
 VEC  potential(CONSTANTS c, VEC* PositionArrayOld, VEC* PotentialArray, int i);																//Lennard-Jones Potential
 

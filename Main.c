@@ -31,7 +31,7 @@ int main(int argc, char *argv[]){
     else paramfile = argv[1];
 
     /*Allocate memory for arrays, read in parameter values from file and assign values to constants array*/
-    initialise(&c, &PositionArrayOld, &PositionArrayNew, &frames, &FENEArray, &BrownianArray, &PotentialArray, paramfile);
+    initialise(&c, &PositionArrayOld, &PositionArrayNew, &frames, &FENEArray, &BrownianArray, &PotentialArray, &seed, paramfile);
 
     /*Iterates the program for the number of max number of iterations*/
     int loopcount;
@@ -53,9 +53,9 @@ int main(int argc, char *argv[]){
     return 0;
 }
 
-/*Loads parameters from file and allocates memory for all of the arrays except the seed array*/
+/*Loads parameters from file and allocates memory for all of the arrays*/
 
-int initialise(CONSTANTS* c, VEC** PositionArrayOld, VEC** PositionArrayNew, VEC** frames, VEC** FENEArray, VEC** BrownianArray, VEC** PotentialArray, const char* paramfile){
+int initialise(CONSTANTS* c, VEC** PositionArrayOld, VEC** PositionArrayNew, VEC** frames, VEC** FENEArray, VEC** BrownianArray, VEC** PotentialArray, long** seed, const char* paramfile){
     /*Opens parameter file and reads in values for constants*/
     FILE* params;
     params = fopen(paramfile, "r");
@@ -126,6 +126,14 @@ int initialise(CONSTANTS* c, VEC** PositionArrayOld, VEC** PositionArrayNew, VEC
 
     (*PotentialArray) = (VEC *) malloc(sizeof(VEC) * c->N);
     if(PotentialArray == NULL) die("cannot allocate memory for PotentialArray", __LINE__, __FILE__);
+
+    (*seed) = (long*) malloc(4 * sizeof(long));
+    if(seed == NULL) die("cannot allocate memory for seeds", __LINE__, __FILE__);
+
+    int i;
+    for(i = 0; i < 4; i++){
+        (*seed)[i] = -56789*(i+1);
+    }
 
     (*PositionArrayOld)[0].xcoord = 0;           //Initialising pos1 to 0,0,0
     (*PositionArrayOld)[0].ycoord = 0;
@@ -211,21 +219,12 @@ int timestep(CONSTANTS c, VEC* PositionArrayOld, VEC* PositionArrayNew, VEC* FEN
     FENEArray[c.N-1] = FENEForce(PositionArrayOld[c.N-1], PositionArrayOld[c.N-1], c);
 
     /*Again can be run in parallel, but issues arise when generating random number as all threads need access do different seeds*/
-    #pragma omp parallel
-    {
-    int numofthreads = omp_get_num_threads();
 
-    /*Inside the prarllel section as we need to know the number of threads however, we only want one thread to initialise the seed array*/
-    #pragma omp single
-    {
-    initialiseseed(numofthreads, &seed, c);
-    }
-    #pragma omp for
+    #pragma omp parallel for num_threads(4)
     for(int j = 1; j < c.N; j ++) {
         /*Thread id passed through to random number generator so correct seed is used*/
         int tid = omp_get_thread_num();
-        BrownianArray[j] = Brownian(seed, c, tid);
-    }
+        BrownianArray[j] = Brownian(c, &seed[tid]);
     }
 
     #pragma omp parallel for
@@ -268,12 +267,12 @@ VEC FENEForce(VEC nPos, VEC nPosPlusOne, CONSTANTS c){
     return FENEForces;
 }
 
-VEC  Brownian(long* seed, CONSTANTS c, int tid){
+VEC  Brownian(CONSTANTS c, long* seednum){
     VEC BrownianForces;
 
-    BrownianForces.xcoord = sqrt((6 * Boltzmann * c.T*c.eta)/c.h) * GenGaussRand(seed, c, tid);            //random number from 1 to -1, Gaussian distribution
-    BrownianForces.ycoord = sqrt((6 * Boltzmann * c.T*c.eta)/c.h) * GenGaussRand(seed, c, tid);
-    BrownianForces.zcoord = sqrt((6 * Boltzmann * c.T*c.eta)/c.h) * GenGaussRand(seed, c, tid);            //On the scale E-2
+    BrownianForces.xcoord = sqrt((6 * Boltzmann * c.T*c.eta)/c.h) * GenGaussRand(c, seednum);            //random number from 1 to -1, Gaussian distribution
+    BrownianForces.ycoord = sqrt((6 * Boltzmann * c.T*c.eta)/c.h) * GenGaussRand(c, seednum);
+    BrownianForces.zcoord = sqrt((6 * Boltzmann * c.T*c.eta)/c.h) * GenGaussRand(c, seednum);            //On the scale E-2
 
     return BrownianForces;
 }
@@ -409,29 +408,17 @@ int finalise(CONSTANTS* c, VEC** PositionArrayOld, VEC** PositionArrayNew, VEC**
 
 /*Utility functions for the random numbers and for dealing with errors*/
 
-double GenGaussRand(long* seed, CONSTANTS c, int tid){
+double GenGaussRand(CONSTANTS c, long* seednum){
     double OutputGauss_1;
 
-    double input_1 = ran2(&seed[tid + 1]);
-    double input_2 = ran2(&seed[tid + 1]);
+    double input_1 = ran2(seednum);
+    double input_2 = ran2(seednum);
 
     OutputGauss_1 = sqrt(-2 * log(input_1) ) * cos(2 * pi * input_2);          //If using a standard Gaussian
 
     return OutputGauss_1;
 }
 
-int initialiseseed(int numseeds, long** seed, CONSTANTS c){
-    (*seed) = (long*) malloc(numseeds * 2.0 * sizeof(long));
-    if(seed == NULL) die("cannot allocate memory for seeds", __LINE__, __FILE__);
-    int i;
-    int count = 0;
-    for(i = 0; i+2; i < 2*numseeds){
-        *(seed[i]) = count;
-        *(seed[i + 1]) = -56789*i;
-        count++;
-    }
-    return EXIT_SUCCESS;
-}
 
 void die(const char* message, const int line, const char* file){
     fprintf(stderr, "%s. \nLine: %d\t File: %s\n", message, line, file);
