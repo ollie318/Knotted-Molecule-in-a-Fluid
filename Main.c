@@ -89,6 +89,7 @@ int initialise(CONSTANTS* c, VEC** PositionArrayOld, VEC** PositionArrayNew, VEC
 
     c->D = (Boltzmann * c->T) / (6 * pi * c->FluidViscos * c->BeadRadi);    //Diffusion coefficient
     c->eta = 6*pi*c->FluidViscos*c->BeadRadi;
+    c->PipeRad = 2E-2;                                                      //Radius of pipe in metres
 
     //Spring coefficient calcs
     readvalue = fscanf(params, "%lf\n", &(c->N_k));
@@ -99,10 +100,10 @@ int initialise(CONSTANTS* c, VEC** PositionArrayOld, VEC** PositionArrayNew, VEC
 
     c->N_ks = c->N_k / (c->N-1);
     c->L_s = c->N_ks * c->b_k;
-    c->H = (3*Boltzmann*c->T) / (c->L_s * c->b_k);                             //Taken from Simons paper, values for polystyrene not DNA
+    c->H = (3*Boltzmann*c->T) / (c->L_s * c->b_k);                           //Taken from Simons paper, values for polystyrene not DNA
 
     //c.m = 1.9927E-26;
-    c->m = 0.104 / AvogadroNum;                                          //Bead mass for styrene
+    c->m = 0.104 / AvogadroNum;                                             //Bead mass for styrene
     c->Q_0 = c->N_ks * c->b_k;
 
     c->MaxExtension = c->L_s;
@@ -279,7 +280,13 @@ VEC  Brownian(CONSTANTS c, long* seednum){
     return BrownianForces;
 }
 
-/*VEC Stokes(CONSTANTS c, VEC OldPos)*/
+VEC Stokes(CONSTANTS c, VEC OldPos){
+    VEC FlowForce;
+    FlowForce.xcoord = 0;
+    FlowForce.ycoord = 0;
+    FlowForce.zcoord = ((OldPos.xcoord / c.PipeRad) * c.FlowVel);                                       //Small angle approximation for sin, xcoord/PipeRad is angle
+}
+
 
 VEC potential(CONSTANTS c, VEC* PositionArrayOld, VEC* PotentialArray, int i){
     double sepX, sepY, sepZ, TotalSep, epsilon, sigma, potX, potY, potZ;
