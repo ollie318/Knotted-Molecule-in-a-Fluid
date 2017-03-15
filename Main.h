@@ -12,7 +12,7 @@ typedef struct
     double N_k, N_ks, b_k, L_s, eta, MaxExtension;
     int N, maxIters;
     long a;
-    long *b;
+    long* b;
 } CONSTANTS;
 
 

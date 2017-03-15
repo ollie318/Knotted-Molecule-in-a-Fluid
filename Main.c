@@ -106,6 +106,8 @@ int initialise(CONSTANTS* c, VEC** PositionArrayOld, VEC** PositionArrayNew, VEC
     c->Q_0 = c->N_ks * c->b_k;
 
     c->MaxExtension = c->L_s;
+    c->a = -45678;
+    c->b = &c->a;
 
     /*Memory allocated*/
 
@@ -220,11 +222,11 @@ int timestep(CONSTANTS c, VEC* PositionArrayOld, VEC* PositionArrayNew, VEC* FEN
 
     /*Again can be run in parallel, but issues arise when generating random number as all threads need access do different seeds*/
 
-    #pragma omp parallel for num_threads(4)
+    // #pragma omp parallel for num_threads(4)
     for(int j = 1; j < c.N; j ++) {
         /*Thread id passed through to random number generator so correct seed is used*/
-        int tid = omp_get_thread_num();
-        BrownianArray[j] = Brownian(c, &seed[tid]);
+        // int tid = omp_get_thread_num();
+        BrownianArray[j] = Brownian(c, c.b);
     }
 
     #pragma omp parallel for
@@ -356,6 +358,8 @@ int writeKnotAnalysis(CONSTANTS c, VEC* frames){
 
     if(KnotAnalysis == NULL) die("Knot Analysis file could not be opened", __LINE__, __FILE__);
 
+    fprintf(KnotAnalysis, "Start\t\t\tEnd\t\t\t\tPosition\t\t\tSize\n" );
+
 
     double* chain = (double*) malloc( sizeof(double) * 3 * c.N );
 
@@ -367,20 +371,18 @@ int writeKnotAnalysis(CONSTANTS c, VEC* frames){
         chain[3*i + 2] = p.zcoord;
       }
 
-
-      fprintf(KnotAnalysis, "Start\tEnd\tPosition\n" );
-
         jKN* PolymerKnot;
         PolymerKnot = jKN_alloc(chain, c.N);
         KnotScan(PolymerKnot);
         if (PolymerKnot->state>0){
-            double kstart, kend, kpos;
+            double kstart, kend, kpos, ksize;
     				kstart = floor(0.5+PolymerKnot->start)+1;
     				kend = floor(0.5+PolymerKnot->end)+1;
     				kpos = floor(0.5+PolymerKnot->position)+1;
-            fprintf(KnotAnalysis, "%lf\t%lf\t%lf\n", kstart, kend, kpos);
+                    ksize = floor(0.5 + PolymerKnot->size) + 1;
+            fprintf(KnotAnalysis, "%lf\t\t%lf\t\t%lf\t\t%lf\n", kstart, kend, kpos, ksize);
         }
-        else fprintf(KnotAnalysis, "state = 0");
+        else fprintf(KnotAnalysis, "state = 0\n");
     }
 
     fclose(KnotAnalysis);
