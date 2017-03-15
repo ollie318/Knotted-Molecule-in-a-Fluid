@@ -99,8 +99,8 @@ int initialise(CONSTANTS* c, VEC** PositionArrayOld, VEC** PositionArrayNew, VEC
     if(readvalue != 1) die("Could not read b_k", __LINE__, __FILE__);
 
     c->N_ks = c->N_k / (c->N-1);
-    c->L_s = c->N_ks * c->b_k;
-    c->H = (3*Boltzmann*c->T) / (c->L_s * c->b_k);                           //Taken from Simons paper, values for polystyrene not DNA
+    c->L_s = c->N_ks * c->b_k;                                              
+    c->H = (3*Boltzmann*c->T) / (c->L_s * c->b_k);                          //Taken from Simons paper, values for polystyrene not DNA
 
     //c.m = 1.9927E-26;
     c->m = 0.104 / AvogadroNum;                                             //Bead mass for styrene
@@ -285,6 +285,8 @@ VEC Stokes(CONSTANTS c, VEC OldPos){
     FlowForce.xcoord = 0;
     FlowForce.ycoord = 0;
     FlowForce.zcoord = ((OldPos.xcoord / c.PipeRad) * c.FlowVel);                                       //Small angle approximation for sin, xcoord/PipeRad is angle
+
+    return FlowForce;
 }
 
 
@@ -328,6 +330,15 @@ VEC potential(CONSTANTS c, VEC* PositionArrayOld, VEC* PotentialArray, int i){
     }
 
     return pot;
+}
+
+VEC WallPotential(CONSTANTS c, VEC OldPos){
+
+    VEC extPotential;                                                                                       //Eq from Simon's paper
+    extPotential.xcoord = Boltzmann * c.T * 5 * pow(c.MaxExtension , 5) / pow(OldPos.xcoord , 6);           //MaxExtension should actually be equilibrium length
+    extPotential.ycoord = 0;
+    extPotential.zcoord = 0;                                                                                //Only wall in proximity perp to x-axis, horiz wall
+    return extPotential;
 }
 
 /*The array of frames is then printed to file*/
