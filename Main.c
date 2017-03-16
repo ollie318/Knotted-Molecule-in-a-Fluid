@@ -36,14 +36,14 @@ int main(int argc, char *argv[]){
     initialise(&c, &PositionArrayOld, &PositionArrayNew, &frames, &FENEArray, &BrownianArray, &PotentialArray, &seed, paramfile);
 
     /*Iterates the program for the number of max number of iterations*/
-    int loopcount;
+    int loopcount, j;
     for(loopcount = 0; loopcount < c.maxIters; loopcount++){
         /*Adds coordinates to frame file*/
         updateFrames(c, loopcount, frames, PositionArrayOld);
         /*Applies forces to previous array to calculate new positions*/
         timestep(c, PositionArrayOld, PositionArrayNew, FENEArray, BrownianArray, PotentialArray, seed);
         /*Copies new positions to old array for the next timestep*/
-        for(int j = 1; j < c.N; j ++){
+        for(j = 1; j < c.N; j ++){
             PositionArrayOld[j] = PositionArrayNew[j];
         }
     }
@@ -165,7 +165,8 @@ int CalcKnotPos(CONSTANTS c, VEC* PositionArrayOld){
 
     double Testxcoord = 0.0, Testycoord = 0.0, Testzcoord = 0.0;
 
-    for(int i = 0; i < c.N; i++){
+    int i;
+    for(i = 0; i < c.N; i++){
         int beadnumber;
 
         /*Adds a straight chain of 15 beads to either side of the knot*/
@@ -198,7 +199,8 @@ int CalcKnotPos(CONSTANTS c, VEC* PositionArrayOld){
 
 int updateFrames(CONSTANTS c, int CurrentFrame, VEC* frames, VEC* positions){
     #pragma omp parallel for
-    for (int i = 0; i < c.N; i++) {
+    int i;
+    for (i = 0; i < c.N; i++) {
         frames[CurrentFrame*c.N + i] = positions[i];
     }
 
@@ -219,7 +221,8 @@ int timestep(CONSTANTS c, VEC* PositionArrayOld, VEC* PositionArrayNew, VEC* FEN
 
     /*Section can be run in parallel as positions are not changed*/
     #pragma omp parallel for
-    for(int i = 1; i < c.N-1; i ++) {
+    int i;
+    for(i = 1; i < c.N-1; i ++) {
         FENEArray[i] = FENEForce(PositionArrayOld[i], PositionArrayOld[i+1], c);
     }
 
@@ -229,20 +232,23 @@ int timestep(CONSTANTS c, VEC* PositionArrayOld, VEC* PositionArrayNew, VEC* FEN
     /*Again can be run in parallel, but issues arise when generating random number as all threads need access do different seeds*/
 
     // #pragma omp parallel for num_threads(4)
-    for(int j = 1; j < c.N; j ++) {
+    int j;
+    for(j = 1; j < c.N; j ++) {
         /*Thread id passed through to random number generator so correct seed is used*/
         // int tid = omp_get_thread_num();
         BrownianArray[j] = Brownian(c, c.b);
     }
 
     #pragma omp parallel for
-    for(int k = 1; k < c.N; k ++) {
+    int k;
+    for(k = 1; k < c.N; k ++) {
         PotentialArray[k] = potential(c, PositionArrayOld, PotentialArray, k);
     }
 
     /*All of the forces calculated are then summed and applied using Euler's method*/
     #pragma omp parallel for
-    for(int m = 1; m < c.N; m ++) {
+    int m;
+    for(m = 1; m < c.N; m ++) {
         PositionArrayNew[m].xcoord = PositionArrayOld[m].xcoord + c.h*((FENEArray[m].xcoord - FENEArray[m-1].xcoord + BrownianArray[m].xcoord + PotentialArray[m].xcoord)/c.eta);
 
         PositionArrayNew[m].ycoord = PositionArrayOld[m].ycoord + c.h*((FENEArray[m].ycoord - FENEArray[m-1].ycoord + BrownianArray[m].ycoord + PotentialArray[m].ycoord)/c.eta);
@@ -308,7 +314,8 @@ VEC potential(CONSTANTS c, VEC* PositionArrayOld, VEC* PotentialArray, int i){
 
     /*Bead i finds the potential for bead i+n. For i-n, we use the negative of that previously calculated*/
     #pragma omp parallel for
-    for(int j = (i+1); j < c.N; j++)
+    int j;
+    for(j = (i+1); j < c.N; j++)
     {
         sepX = PositionArrayOld[i].xcoord - PositionArrayOld[j].xcoord;
         sepY = PositionArrayOld[i].ycoord - PositionArrayOld[j].ycoord;
@@ -328,7 +335,7 @@ VEC potential(CONSTANTS c, VEC* PositionArrayOld, VEC* PotentialArray, int i){
     }
 
     /*For i-n we use the negative of i+n found above*/
-    for(int j = (i-1); j >= 0; j--){
+    for(j = (i-1); j >= 0; j--){
         pot.xcoord -= PotentialArray[j].xcoord;
         pot.ycoord -= PotentialArray[j].ycoord;
         pot.zcoord -= PotentialArray[j].zcoord;
@@ -386,8 +393,9 @@ int writeKnotAnalysis(CONSTANTS c, VEC* frames){
 
     double* chain = (double*) malloc( sizeof(double) * 3 * c.N );
 
-    for(int j = 0; j<c.N*c.maxIters; j += 10*c.N){ // taking every 10th frame
-      for(int i = 0; i < c.N; i++ ) { // taking each bead for that frame
+    int i, j;
+    for(j = 0; j<c.N*c.maxIters; j += 10*c.N){ // taking every 10th frame
+      for(i = 0; i < c.N; i++ ) { // taking each bead for that frame
         VEC p = frames[ j + i ];
         chain[3*i] = p.xcoord;
         chain[3*i + 1] = p.ycoord;
