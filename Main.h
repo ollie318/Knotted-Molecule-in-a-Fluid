@@ -8,11 +8,9 @@ typedef struct
 
 typedef struct
 {
-    double BeadRadi, FluidViscos, h, T, D, FlowVel, H, m, Q_0, PipeRad;
+    double BeadRadi, FluidViscos, h, T, D, FlowVel, H, m, Q_0;
     double N_k, N_ks, b_k, L_s, eta, MaxExtension;
     int N, maxIters;
-    long a;
-    long* b;
 } CONSTANTS;
 
 
@@ -24,25 +22,21 @@ int CalcKnotPos(CONSTANTS c, VEC* PositionArrayOld);
 
 int updateFrames(CONSTANTS c, int CurrentFrame, VEC* frames, VEC* positions);								//Writes current set of positions into frames, frames written to file at end
 
-int timestep(CONSTANTS c, VEC* PositionArrayOld, VEC* PositionArrayNew, VEC* VECArray, VEC* BrownianArray, VEC* PotentialArray, long* seed);						//Loop that calls Forces for each bead, will inc potential
+int timestep(CONSTANTS c, VEC* PositionArrayOld, VEC* PositionArrayNew, VEC* VECArray, VEC* BrownianArray, VEC* PotentialArray, gsl_rng** seed);						//Loop that calls Forces for each bead, will inc potential
 
 VEC FENEForce(VEC nPos, VEC nPosPlusOne, CONSTANTS c);
 
-VEC Brownian(CONSTANTS c, long* seednum);
+VEC Brownian(CONSTANTS c, gsl_rng* seednum);
 
-VEC Stokes(CONSTANTS c, VEC OldPos);
+double GenGaussRand (CONSTANTS c, gsl_rng* seednum);
 
 VEC  potential(CONSTANTS c, VEC* PositionArrayOld, VEC* PotentialArray, int i);																//Lennard-Jones Potential
-
-VEC WallPotential(CONSTANTS c, VEC OldPos);
 
 int writeVTF(CONSTANTS c, VEC* frames);																		//Writes all bead positions to file after arrays finished
 
 int writeKnotAnalysis(CONSTANTS c, VEC* frames);
 
 int finalise(CONSTANTS* c, VEC** PositionArrayOld, VEC** PositionArrayNew, VEC** frames, VEC** VECArray, VEC** BrownianArray, VEC** PotentialArray);			//frees memory
-
-double GenGaussRand (CONSTANTS c, long* seednum);
 
 void die(const char* message, const int line, const char* file);
 
