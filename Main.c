@@ -12,7 +12,7 @@
 #define pi 3.1415926535897932
 #define AvogadroNum 6.02E23
 
-#define THREADS 8
+#define THREADS 3
 
 //MAIN PROG
 
@@ -36,7 +36,7 @@ int main(int argc, char *argv[]){
     //Sets up R_GEN with the mt19937 generator
     gsl_rng* R_GEN[16];
     time_t timer;
-    for (int thread=0; thread<16; thread++)
+    for (int thread=0; thread<THREADS; thread++)
     {
         double Seed = thread * time(&timer);
         R_GEN[thread] = gsl_rng_alloc (gsl_rng_mt19937);
@@ -69,7 +69,7 @@ int main(int argc, char *argv[]){
     writeKnotAnalysis(c, frames);
     finalise(&c, &PositionArrayOld, &PositionArrayNew, &frames, &FENEArray, &BrownianArray, &PotentialArray);
 
-    for (int thread=0; thread<16; thread++)
+    for (int thread=0; thread<THREADS; thread++)
     {
         gsl_rng_free (R_GEN[thread]);
     }
@@ -313,6 +313,7 @@ VEC potential(CONSTANTS c, VEC* PositionArrayOld, VEC* PotentialArray, int i){
 
     sigma = 2 * c.BeadRadi;         /*r where attraction/repulsion changes*/
     epsilon = 1.0;                  /*Depth of the weakly attractive well for atom*/
+    double epsilon_sigma_5 = 5.0*pow(sigma,5)*epsilon/AvogadroNum;
 
     pot.xcoord = 0.0;
     pot.ycoord = 0.0;
@@ -320,31 +321,35 @@ VEC potential(CONSTANTS c, VEC* PositionArrayOld, VEC* PotentialArray, int i){
 
     /*Bead i finds the potential for bead i+n. For i-n, we use the negative of that previously calculated*/
 //    #pragma omp parallel for
-    for(int j = (i+1); j < c.N; j++)
+//    for(int j = (i+1); j < c.N; j++)
+    for(int j = 0; j < c.N; j++)
     {
-        sepX = PositionArrayOld[i].xcoord - PositionArrayOld[j].xcoord;
-        sepY = PositionArrayOld[i].ycoord - PositionArrayOld[j].ycoord;
-        sepZ = PositionArrayOld[i].zcoord - PositionArrayOld[j].zcoord;
-        TotalSep = sqrt( sepX*sepX + sepY*sepY + sepZ*sepZ );
+        if (i!=j) {
 
-        /*Potential is found for each axis*/
-        potX = (5*(epsilon) * sepX * (pow(sigma, 5)/pow(TotalSep, 7)))/AvogadroNum;
-        potY = (5*(epsilon) * sepY * (pow(sigma, 5)/pow(TotalSep, 7)))/AvogadroNum;
-        potZ = (5*(epsilon) * sepZ * (pow(sigma, 5)/pow(TotalSep, 7)))/AvogadroNum;
+            sepX = PositionArrayOld[i].xcoord - PositionArrayOld[j].xcoord;
+            sepY = PositionArrayOld[i].ycoord - PositionArrayOld[j].ycoord;
+            sepZ = PositionArrayOld[i].zcoord - PositionArrayOld[j].zcoord;
+            TotalSep = pow( sepX*sepX + sepY*sepY + sepZ*sepZ, 3.5 );
 
-        /*The potential from i to i+n is added to an overall potential force. This applies only to i+n*/
-        pot.xcoord += potX;
-        pot.ycoord += potY;
-        pot.zcoord += potZ;
+            /*Potential is found for each axis*/
+            potX = epsilon_sigma_5 * sepX / TotalSep;
+            potY = epsilon_sigma_5 * sepY / TotalSep;
+            potZ = epsilon_sigma_5 * sepZ / TotalSep;
+
+            /*The potential for i <> j is added to an overall potential force. */
+            pot.xcoord += potX;
+            pot.ycoord += potY;
+            pot.zcoord += potZ;
+        }
 
     }
 
     /*For i-n we use the negative of i+n found above*/
-    for(int j = (i-1); j >= 0; j--){
-        pot.xcoord -= PotentialArray[j].xcoord;
-        pot.ycoord -= PotentialArray[j].ycoord;
-        pot.zcoord -= PotentialArray[j].zcoord;
-    }
+//    for(int j = (i-1); j >= 0; j--){
+//        pot.xcoord -= PotentialArray[j].xcoord;
+//        pot.ycoord -= PotentialArray[j].ycoord;
+//        pot.zcoord -= PotentialArray[j].zcoord;
+//    }
 
     return pot;
 }
