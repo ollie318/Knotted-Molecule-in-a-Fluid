@@ -197,7 +197,7 @@ int CalcKnotPos(CONSTANTS c, VEC* PositionArrayOld){
           }
           else{
             PositionArrayOld[i].xcoord = (i - 31) * (c.Q_0 * 0.8);
-            PositionArrayOld[i].ycoord = Testycoord;
+            PositionArrayOld[i].ycoord = Testycoord - 1.0689103E-07;
             PositionArrayOld[i].zcoord = Testzcoord;
           }
         }
@@ -205,7 +205,7 @@ int CalcKnotPos(CONSTANTS c, VEC* PositionArrayOld){
         else{
             fscanf(knot, "%d\t%lf\t%lf\t%lf", &beadnumber, &Testxcoord, &Testycoord, &Testzcoord);
             PositionArrayOld[i].xcoord = 15 * (c.Q_0 * 0.8) + Testxcoord;
-            PositionArrayOld[i].ycoord = Testycoord;
+            PositionArrayOld[i].ycoord = Testycoord - 1.0689103E-07;
             PositionArrayOld[i].zcoord = Testzcoord;
         }
     }
@@ -344,13 +344,6 @@ VEC potential(CONSTANTS c, VEC* PositionArrayOld, VEC* PotentialArray, int i){
 
     }
 
-    /*For i-n we use the negative of i+n found above*/
-//    for(int j = (i-1); j >= 0; j--){
-//        pot.xcoord -= PotentialArray[j].xcoord;
-//        pot.ycoord -= PotentialArray[j].ycoord;
-//        pot.zcoord -= PotentialArray[j].zcoord;
-//    }
-
     return pot;
 }
 
@@ -401,19 +394,19 @@ int writeKnotAnalysis(CONSTANTS c, VEC* frames){
       }
 
 
-//      fprintf(KnotAnalysis, "Start\tEnd\tPosition\n" );
-//
-//        jKN* PolymerKnot;
-//        PolymerKnot = jKN_alloc(chain, c.N);
-//        KnotScan(PolymerKnot);
-//        if (PolymerKnot->state>0){
-//            double kstart, kend, kpos;
-//    				kstart = floor(0.5+PolymerKnot->start)+1;
-//    				kend = floor(0.5+PolymerKnot->end)+1;
-//    				kpos = floor(0.5+PolymerKnot->position)+1;
-//            fprintf(KnotAnalysis, "%lf\t%lf\t%lf\n", kstart, kend, kpos);
-//        }
-//        else fprintf(KnotAnalysis, "state = 0");
+     fprintf(KnotAnalysis, "Start\tEnd\tPosition\n" );
+
+       jKN* PolymerKnot;
+       PolymerKnot = jKN_alloc(chain, c.N);
+       KnotScan(PolymerKnot);
+       if (PolymerKnot->state>0){
+           double kstart, kend, kpos;
+   				kstart = floor(0.5+PolymerKnot->start)+1;
+   				kend = floor(0.5+PolymerKnot->end)+1;
+   				kpos = floor(0.5+PolymerKnot->position)+1;
+           fprintf(KnotAnalysis, "%lf\t%lf\t%lf\n", kstart, kend, kpos);
+       }
+       else fprintf(KnotAnalysis, "state = 0");
     }
 
     fclose(KnotAnalysis);
