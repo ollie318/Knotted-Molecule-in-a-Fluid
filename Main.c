@@ -2,6 +2,8 @@
 #include <stdlib.h>
 #include <math.h>
 #include <omp.h>
+#include <time.h>
+#include <unistd.h>
 #include "Main.h"
 #include "random.h"
 #include "KnotAnalysis.h"
@@ -99,15 +101,18 @@ int initialise(CONSTANTS* c, VEC** PositionArrayOld, VEC** PositionArrayNew, VEC
     if(readvalue != 1) die("Could not read b_k", __LINE__, __FILE__);
 
     c->N_ks = c->N_k / (c->N-1);
-    c->L_s = c->N_ks * c->b_k;                                              
+    c->L_s = c->N_ks * c->b_k;
     c->H = (3*Boltzmann*c->T) / (c->L_s * c->b_k);                          //Taken from Simons paper, values for polystyrene not DNA
 
     //c.m = 1.9927E-26;
     c->m = 0.104 / AvogadroNum;                                             //Bead mass for styrene
     c->Q_0 = c->N_ks * c->b_k;
-
     c->MaxExtension = c->L_s;
-    c->a = -45678;
+
+    long ID = getpid();
+    time_t t;
+    srand((unsigned) time(&t));
+    c->a = - ID * pow(rand()%50, 2);
     c->b = &c->a;
 
     /*Memory allocated*/
@@ -172,7 +177,7 @@ int CalcKnotPos(CONSTANTS c, VEC* PositionArrayOld){
           }
           else{
             PositionArrayOld[i].xcoord = (i - 31) * (c.Q_0 * 0.8);
-            PositionArrayOld[i].ycoord = Testycoord;
+            PositionArrayOld[i].ycoord = Testycoord - 1.0689103E-07;
             PositionArrayOld[i].zcoord = Testzcoord;
           }
         }
@@ -180,7 +185,7 @@ int CalcKnotPos(CONSTANTS c, VEC* PositionArrayOld){
         else{
             fscanf(knot, "%d\t%lf\t%lf\t%lf", &beadnumber, &Testxcoord, &Testycoord, &Testzcoord);
             PositionArrayOld[i].xcoord = 15 * (c.Q_0 * 0.8) + Testxcoord;
-            PositionArrayOld[i].ycoord = Testycoord;
+            PositionArrayOld[i].ycoord = Testycoord - 1.0689103E-07;
             PositionArrayOld[i].zcoord = Testzcoord;
         }
     }
@@ -334,7 +339,7 @@ VEC potential(CONSTANTS c, VEC* PositionArrayOld, VEC* PotentialArray, int i){
 
 VEC WallPotential(CONSTANTS c, VEC OldPos){
 
-    VEC extPotential;                                                                                       //Eq from Simon's paper
+    VEC extPotential;                      //Eq from Simon's paper
     extPotential.xcoord = Boltzmann * c.T * 5 * pow(c.MaxExtension , 5) / pow(OldPos.xcoord , 6);           //MaxExtension should actually be equilibrium length
     extPotential.ycoord = 0;
     extPotential.zcoord = 0;                                                                                //Only wall in proximity perp to x-axis, horiz wall
