@@ -4,6 +4,7 @@
 #include <time.h>
 #include <gsl/gsl_rng.h>
 #include <omp.h>
+#include <omp_lib.h>
 #include "Main.h"
 #include "random.h"
 #include "KnotAnalysis.h"
@@ -269,7 +270,8 @@ int timestep(CONSTANTS c, VEC* PositionArrayOld, VEC* PositionArrayNew, VEC* FEN
 
         PositionArrayNew[m].ycoord = PositionArrayOld[m].ycoord + c.h*((FENEArray[m].ycoord - FENEArray[m-1].ycoord + BrownianArray[m].ycoord + PotentialArray[m].ycoord)/c.eta);
 
-        PositionArrayNew[m].zcoord = PositionArrayOld[m].zcoord + c.h*((FENEArray[m].zcoord - FENEArray[m-1].zcoord + BrownianArray[m].zcoord + PotentialArray[m].zcoord)/c.eta);
+        PositionArrayNew[m].zcoord = PositionArrayOld[m].zcoord + c.h*((FENEArray[m].zcoord - FENEArray[m-1].zcoord + BrownianArray[m].zcoord + PotentialArray[m].zcoord 
+                                                                                                                                        + StokesFlow(c, PositionArrayOld[m]) )/c.eta);
     }
 
     return EXIT_SUCCESS;
@@ -307,7 +309,13 @@ VEC  Brownian(CONSTANTS c, gsl_rng* seednum){
     return BrownianForces;
 }
 
-/*VEC Stokes(CONSTANTS c, VEC OldPos)*/
+double StokesFlow(CONSTANTS c, VEC OldPos){ 
+    double FlowForce;                                                                                   //Acts in z-direction only, based on x-coord
+    FlowForce = ((OldPos.xcoord / c.PipeRad) * c.FlowVel);                                       //Small angle approximation for sin, xcoord/PipeRad is angle 
+
+    return FlowForce; 
+} 
+
 
 VEC potential(CONSTANTS c, VEC* PositionArrayOld, VEC* PotentialArray, int i){
     double sepX, sepY, sepZ, TotalSep, epsilon, sigma, potX, potY, potZ;
@@ -345,6 +353,9 @@ VEC potential(CONSTANTS c, VEC* PositionArrayOld, VEC* PotentialArray, int i){
         }
 
     }
+
+    /*Wall potential, eq from Simon's paper*/
+    pot.xcoord += Boltzmann * c.T * 5 * pow(c.MaxExtension , 5) / pow(PositionArrayOld[i].xcoord , 6);           //MaxExtension should be equilibrium length
 
     return pot;
 }
