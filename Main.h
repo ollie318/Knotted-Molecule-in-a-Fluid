@@ -28,7 +28,7 @@ VEC FENEForce(VEC nPos, VEC nPosPlusOne, CONSTANTS c);
 
 VEC Brownian(CONSTANTS c, gsl_rng* seednum);
 
-double GenGaussRand (CONSTANTS c, gsl_rng* seednum);
+double StokesFlow(CONSTANTS c, VEC OldPos);
 
 VEC  potential(CONSTANTS c, VEC* PositionArrayOld, VEC* PotentialArray, int i);																//Lennard-Jones Potential
 
@@ -37,6 +37,8 @@ int writeVTF(CONSTANTS c, VEC* frames);																		//Writes all bead posit
 int writeKnotAnalysis(CONSTANTS c, VEC* frames);
 
 int finalise(CONSTANTS* c, VEC** PositionArrayOld, VEC** PositionArrayNew, VEC** frames, VEC** VECArray, VEC** BrownianArray, VEC** PotentialArray);			//frees memory
+
+double GenGaussRand (CONSTANTS c, gsl_rng* seednum);
 
 void die(const char* message, const int line, const char* file);
 
