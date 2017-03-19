@@ -12,7 +12,7 @@
 #define pi 3.1415926535897932
 #define AvogadroNum 6.02E23
 
-#define THREADS 3
+#define THREADS 4
 
 //MAIN PROG
 
@@ -56,7 +56,9 @@ int main(int argc, char *argv[]){
     int loopcount;
     for(loopcount = 0; loopcount < c.maxIters; loopcount++){
         /*Adds coordinates to frame file*/
-        updateFrames(c, loopcount, frames, PositionArrayOld);
+        if(loopcount%100 == 0){
+            updateFrames(c, loopcount/100, frames, PositionArrayOld);
+        }
         /*Applies forces to previous array to calculate new positions*/
         timestep(c, PositionArrayOld, PositionArrayNew, FENEArray, BrownianArray, PotentialArray, R_GEN);
         /*Copies new positions to old array for the next timestep*/
@@ -140,7 +142,7 @@ int initialise(CONSTANTS* c, VEC** PositionArrayOld, VEC** PositionArrayNew, VEC
     (*PositionArrayNew) = (VEC*) malloc(sizeof(VEC) * c->N);
     if(PositionArrayNew == NULL) die("cannot allocate memory for PositionArrayNew", __LINE__, __FILE__);
 
-    (*frames) = (VEC*) malloc(sizeof(VEC) * c->N * c->maxIters);
+    (*frames) = (VEC*) malloc(sizeof(VEC) * c->N * c->maxIters/100);
     if(frames == NULL) die("cannot allocate memory for frames", __LINE__, __FILE__);
 
     (*FENEArray) = (VEC*) malloc(sizeof(VEC) * c->N);
@@ -191,12 +193,12 @@ int CalcKnotPos(CONSTANTS c, VEC* PositionArrayOld){
         /*Adds a straight chain of 15 beads to either side of the knot*/
         if((i >= 0 && i < 15) || (i > 45 && i < c.N )){
           if(i >= 0 && i < 15){
-            PositionArrayOld[i].xcoord = i * (c.Q_0 * 0.8);
+            PositionArrayOld[i].xcoord = i * (c.MaxExtension * 0.5);
             PositionArrayOld[i].ycoord = 0.0;
             PositionArrayOld[i].zcoord = 0.0;
           }
           else{
-            PositionArrayOld[i].xcoord = (i - 31) * (c.Q_0 * 0.8);
+            PositionArrayOld[i].xcoord = (i - 30) * (c.MaxExtension * 0.5);
             PositionArrayOld[i].ycoord = Testycoord - 1.0689103E-07;
             PositionArrayOld[i].zcoord = Testzcoord;
           }
@@ -204,7 +206,7 @@ int CalcKnotPos(CONSTANTS c, VEC* PositionArrayOld){
         /*Uses knot coordinates, x position is multiplied by number of beads in previous straight chain so they are in the centre of the knot*/
         else{
             fscanf(knot, "%d\t%lf\t%lf\t%lf", &beadnumber, &Testxcoord, &Testycoord, &Testzcoord);
-            PositionArrayOld[i].xcoord = 15 * (c.Q_0 * 0.8) + Testxcoord;
+            PositionArrayOld[i].xcoord = 15 * (c.MaxExtension * 0.5) + Testxcoord;
             PositionArrayOld[i].ycoord = Testycoord - 1.0689103E-07;
             PositionArrayOld[i].zcoord = Testzcoord;
         }
@@ -263,7 +265,7 @@ int timestep(CONSTANTS c, VEC* PositionArrayOld, VEC* PositionArrayNew, VEC* FEN
     /*All of the forces calculated are then summed and applied using Euler's method*/
     #pragma omp parallel for
     for(int m = 1; m < c.N; m ++) {
-        PositionArrayNew[m].xcoord = PositionArrayOld[m].xcoord + c.h*((FENEArray[m].xcoord - FENEArray[m-1].xcoord + BrownianArray[m].xcoord + PotentialArray[m].xcoord)/c.eta);
+        PositionArrayNew[m].xcoord = PositionArrayOld[m].xcoord + c.h*((FENEArray[m].xcoord - FENEArray[m-1].xcoord + BrownianArray[m].xcoord + PotentialArray[m].xcoord)/c.eta + PositionArrayOld[m].xcoord*c.FlowVel);
 
         PositionArrayNew[m].ycoord = PositionArrayOld[m].ycoord + c.h*((FENEArray[m].ycoord - FENEArray[m-1].ycoord + BrownianArray[m].ycoord + PotentialArray[m].ycoord)/c.eta);
 
@@ -313,7 +315,7 @@ VEC potential(CONSTANTS c, VEC* PositionArrayOld, VEC* PotentialArray, int i){
 
     sigma = 2 * c.BeadRadi;         /*r where attraction/repulsion changes*/
     epsilon = 1.0;                  /*Depth of the weakly attractive well for atom*/
-    double epsilon_sigma_5 = 5.0*pow(sigma,5)*epsilon/AvogadroNum;
+    double epsilon_sigma_5 = 5.5*pow(sigma,5.5)*epsilon/AvogadroNum;
 
     pot.xcoord = 0.0;
     pot.ycoord = 0.0;
@@ -324,7 +326,7 @@ VEC potential(CONSTANTS c, VEC* PositionArrayOld, VEC* PotentialArray, int i){
 //    for(int j = (i+1); j < c.N; j++)
     for(int j = 0; j < c.N; j++)
     {
-        if (i!=j) {
+        if (i!=j && ((i+1)!=j || (i-1)!=j)) {
 
             sepX = PositionArrayOld[i].xcoord - PositionArrayOld[j].xcoord;
             sepY = PositionArrayOld[i].ycoord - PositionArrayOld[j].ycoord;
@@ -362,11 +364,11 @@ int writeVTF(CONSTANTS c, VEC* frames){
     }
 
     int j;				//j represents number of one bead
-    for(j = 0; j < c.N*c.maxIters; j++)
+    for(j = 0; j < c.N*c.maxIters/100; j++)
     {
         if (j%c.N == 0)
             fprintf(File_BeadPos, "\ntimestep\n");
-            fprintf(File_BeadPos, "%.14lf\t%.14lf\t%.14lf\n", 10E6 * frames[j].xcoord, 10E6 * frames[j].ycoord, 10E6 * frames[j].zcoord);		//Writes value in um, micrometres
+        fprintf(File_BeadPos, "%.14lf\t%.14lf\t%.14lf\n", 10E6 * frames[j].xcoord, 10E6 * frames[j].ycoord, 10E6 * frames[j].zcoord);		//Writes value in um, micrometres
     }
 
     fclose(File_BeadPos);
@@ -374,7 +376,7 @@ int writeVTF(CONSTANTS c, VEC* frames){
     return EXIT_SUCCESS;
 }
 
-/*Using a Knot analysis program provided by Simon Hanna, the knots properties such as position, length and size are printed. Note this is done for every 10th frame*/
+/*Using a Knot analysis program provided by Simon Hanna, the knots properties such as position, length and size are printed. Note this is done for every 100th frame*/
 
 int writeKnotAnalysis(CONSTANTS c, VEC* frames){
     FILE* KnotAnalysis;
@@ -382,19 +384,17 @@ int writeKnotAnalysis(CONSTANTS c, VEC* frames){
 
     if(KnotAnalysis == NULL) die("Knot Analysis file could not be opened", __LINE__, __FILE__);
 
+    fprintf(KnotAnalysis, "Start\t\tEnd\t\t\tPosition\n" );
 
     double* chain = (double*) malloc( sizeof(double) * 3 * c.N );
 
-    for(int j = 0; j<c.N*c.maxIters; j += 10*c.N){ // taking every 10th frame
+    for(int j = 0; j<c.N*c.maxIters/100; j += c.N){ // taking every 100th frame
       for(int i = 0; i < c.N; i++ ) { // taking each bead for that frame
         VEC p = frames[ j + i ];
         chain[3*i] = p.xcoord;
         chain[3*i + 1] = p.ycoord;
         chain[3*i + 2] = p.zcoord;
       }
-
-
-     fprintf(KnotAnalysis, "Start\tEnd\tPosition\n" );
 
        jKN* PolymerKnot;
        PolymerKnot = jKN_alloc(chain, c.N);
