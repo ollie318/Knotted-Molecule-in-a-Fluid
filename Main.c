@@ -58,6 +58,7 @@ int main(int argc, char *argv[]){
         /*Adds coordinates to frame file*/
         if(loopcount%100 == 0){
             updateFrames(c, loopcount/100, frames, PositionArrayOld);
+            printf("%d\n", loopcount);
         }
         /*Applies forces to previous array to calculate new positions*/
         timestep(c, PositionArrayOld, PositionArrayNew, FENEArray, BrownianArray, PotentialArray, R_GEN);
