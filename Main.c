@@ -4,7 +4,6 @@
 #include <time.h>
 #include <gsl/gsl_rng.h>
 #include <omp.h>
-#include <omp_lib.h>
 #include "Main.h"
 #include "random.h"
 #include "KnotAnalysis.h"
@@ -134,6 +133,7 @@ int initialise(CONSTANTS* c, VEC** PositionArrayOld, VEC** PositionArrayNew, VEC
     c->Q_0 = c->N_ks * c->b_k;
 
     c->MaxExtension = c->L_s;
+    c->PipeRad = 2.0;
 
     /*Memory allocated*/
 
@@ -266,12 +266,11 @@ int timestep(CONSTANTS c, VEC* PositionArrayOld, VEC* PositionArrayNew, VEC* FEN
     /*All of the forces calculated are then summed and applied using Euler's method*/
     #pragma omp parallel for
     for(int m = 1; m < c.N; m ++) {
-        PositionArrayNew[m].xcoord = PositionArrayOld[m].xcoord + c.h*((FENEArray[m].xcoord - FENEArray[m-1].xcoord + BrownianArray[m].xcoord + PotentialArray[m].xcoord)/c.eta + PositionArrayOld[m].xcoord*c.FlowVel);
+        PositionArrayNew[m].xcoord = PositionArrayOld[m].xcoord + c.h*((FENEArray[m].xcoord - FENEArray[m-1].xcoord + BrownianArray[m].xcoord + PotentialArray[m].xcoord)/c.eta);
 
         PositionArrayNew[m].ycoord = PositionArrayOld[m].ycoord + c.h*((FENEArray[m].ycoord - FENEArray[m-1].ycoord + BrownianArray[m].ycoord + PotentialArray[m].ycoord)/c.eta);
 
-        PositionArrayNew[m].zcoord = PositionArrayOld[m].zcoord + c.h*((FENEArray[m].zcoord - FENEArray[m-1].zcoord + BrownianArray[m].zcoord + PotentialArray[m].zcoord 
-                                                                                                                                        + StokesFlow(c, PositionArrayOld[m]) )/c.eta);
+        PositionArrayNew[m].zcoord = PositionArrayOld[m].zcoord + c.h*((FENEArray[m].zcoord - FENEArray[m-1].zcoord + BrownianArray[m].zcoord + PotentialArray[m].zcoord)/c.eta + StokesFlow(c, PositionArrayOld[m]));
     }
 
     return EXIT_SUCCESS;
@@ -309,12 +308,11 @@ VEC  Brownian(CONSTANTS c, gsl_rng* seednum){
     return BrownianForces;
 }
 
-double StokesFlow(CONSTANTS c, VEC OldPos){ 
-    double FlowForce;                                                                                   //Acts in z-direction only, based on x-coord
-    FlowForce = ((OldPos.xcoord / c.PipeRad) * c.FlowVel);                                       //Small angle approximation for sin, xcoord/PipeRad is angle 
-
-    return FlowForce; 
-} 
+double StokesFlow(CONSTANTS c, VEC OldPos){
+    double FlowForce;          //Acts in z-direction only, based on x-coord
+    FlowForce = ((OldPos.xcoord / c.PipeRad) * c.FlowVel);                                       //Small angle approximation for sin, xcoord/PipeRad is angle
+    return FlowForce;
+}
 
 
 VEC potential(CONSTANTS c, VEC* PositionArrayOld, VEC* PotentialArray, int i){
@@ -323,7 +321,7 @@ VEC potential(CONSTANTS c, VEC* PositionArrayOld, VEC* PotentialArray, int i){
 
     sigma = 2 * c.BeadRadi;         /*r where attraction/repulsion changes*/
     epsilon = 1.0;                  /*Depth of the weakly attractive well for atom*/
-    double epsilon_sigma_5 = 5.5*pow(sigma,5.5)*epsilon/AvogadroNum;
+    double epsilon_sigma_5 = 5.0*pow(sigma,5.0)*epsilon/AvogadroNum;
 
     pot.xcoord = 0.0;
     pot.ycoord = 0.0;
@@ -355,8 +353,13 @@ VEC potential(CONSTANTS c, VEC* PositionArrayOld, VEC* PotentialArray, int i){
     }
 
     /*Wall potential, eq from Simon's paper*/
-    pot.xcoord += Boltzmann * c.T * 5 * pow(c.MaxExtension , 5) / pow(PositionArrayOld[i].xcoord , 6);           //MaxExtension should be equilibrium length
-
+    double avbond =  0.5 * c.b_k * sqrt(c.N_ks);
+    if(PositionArrayOld[i].xcoord > 0.25*avbond){
+        pot.xcoord += Boltzmann * c.T * 5 * pow(avbond, 5) / pow(PositionArrayOld[i].xcoord , 6);           //MaxExtension should be equilibrium length
+    }
+    else{
+        pot.xcoord += Boltzmann * c.T * 5 * pow(avbond, 5) / pow(0.25*avbond , 6);           //MaxExtension should be equilibrium length
+    }
     return pot;
 }
 
