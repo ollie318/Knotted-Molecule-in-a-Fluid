@@ -58,7 +58,6 @@ int main(int argc, char *argv[]){
         /*Adds coordinates to frame file*/
         if(loopcount%100 == 0){
             updateFrames(c, loopcount/100, frames, PositionArrayOld);
-            printf("%d\n", loopcount);
         }
         /*Applies forces to previous array to calculate new positions*/
         timestep(c, PositionArrayOld, PositionArrayNew, FENEArray, BrownianArray, PotentialArray, R_GEN);
@@ -322,7 +321,7 @@ VEC potential(CONSTANTS c, VEC* PositionArrayOld, VEC* PotentialArray, int i){
 
     sigma = 2 * c.BeadRadi;         /*r where attraction/repulsion changes*/
     epsilon = 1.0;                  /*Depth of the weakly attractive well for atom*/
-    double epsilon_sigma_5 = 5.0*pow(sigma,5.0)*epsilon/AvogadroNum;
+    double epsilon_sigma_5 = 5.1*pow(sigma,5.1)*epsilon/AvogadroNum;
 
     pot.xcoord = 0.0;
     pot.ycoord = 0.0;
@@ -338,7 +337,7 @@ VEC potential(CONSTANTS c, VEC* PositionArrayOld, VEC* PotentialArray, int i){
             sepX = PositionArrayOld[i].xcoord - PositionArrayOld[j].xcoord;
             sepY = PositionArrayOld[i].ycoord - PositionArrayOld[j].ycoord;
             sepZ = PositionArrayOld[i].zcoord - PositionArrayOld[j].zcoord;
-            TotalSep = pow( sepX*sepX + sepY*sepY + sepZ*sepZ, 3.5 );
+            TotalSep = pow( sepX*sepX + sepY*sepY + sepZ*sepZ, 3.55 );
 
             /*Potential is found for each axis*/
             potX = epsilon_sigma_5 * sepX / TotalSep;
