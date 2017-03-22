@@ -321,7 +321,7 @@ VEC potential(CONSTANTS c, VEC* PositionArrayOld, VEC* PotentialArray, int i){
 
     sigma = 2 * c.BeadRadi;         /*r where attraction/repulsion changes*/
     epsilon = 1.0;                  /*Depth of the weakly attractive well for atom*/
-    double epsilon_sigma_5 = 5.2*pow(sigma,5.2)*epsilon/AvogadroNum;
+    double epsilon_sigma_5 = 5.3*pow(sigma,5.3)*epsilon/AvogadroNum;
 
     pot.xcoord = 0.0;
     pot.ycoord = 0.0;
@@ -337,7 +337,7 @@ VEC potential(CONSTANTS c, VEC* PositionArrayOld, VEC* PotentialArray, int i){
             sepX = PositionArrayOld[i].xcoord - PositionArrayOld[j].xcoord;
             sepY = PositionArrayOld[i].ycoord - PositionArrayOld[j].ycoord;
             sepZ = PositionArrayOld[i].zcoord - PositionArrayOld[j].zcoord;
-            TotalSep = pow( sepX*sepX + sepY*sepY + sepZ*sepZ, 3.6 );
+            TotalSep = pow( sepX*sepX + sepY*sepY + sepZ*sepZ, 3.15 );
 
             /*Potential is found for each axis*/
             potX = epsilon_sigma_5 * sepX / TotalSep;
