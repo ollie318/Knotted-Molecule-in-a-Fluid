@@ -1,3 +1,2 @@
-#!/bin/bash#PBS -l nodes=1:ppn=4,walltime=02:00:00
-cd $PBS_O_WORKDIR
+#!/bin/bash#PBS -l nodes=1:ppn=4,walltime=02:00:00cd $PBS_O_WORKDIR
 ./a.out 8_19Params.txt
