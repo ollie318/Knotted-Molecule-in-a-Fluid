@@ -319,7 +319,7 @@ VEC potential(CONSTANTS c, VEC* PositionArrayOld, VEC* PotentialArray, int i){
     double sepX, sepY, sepZ, TotalSep, epsilon, sigma, potX, potY, potZ;
     VEC  pot;
 
-    sigma = 2 * c.BeadRadi;         /*r where attraction/repulsion changes*/
+    sigma = c.BeadRadi;         /*r where attraction/repulsion changes*/
     epsilon = 1.0;                  /*Depth of the weakly attractive well for atom*/
     double epsilon_sigma_5 = 12.0*pow(sigma,12.0)*epsilon/AvogadroNum;
 
