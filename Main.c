@@ -56,8 +56,8 @@ int main(int argc, char *argv[]){
     int loopcount;
     for(loopcount = 0; loopcount < c.maxIters; loopcount++){
         /*Adds coordinates to frame file*/
-        if(loopcount%500 == 0){
-            updateFrames(c, loopcount/500, frames, PositionArrayOld);
+        if(loopcount%100 == 0){
+            updateFrames(c, loopcount/100, frames, PositionArrayOld);
         }
         /*Applies forces to previous array to calculate new positions*/
         timestep(c, PositionArrayOld, PositionArrayNew, FENEArray, BrownianArray, PotentialArray, R_GEN);
@@ -319,7 +319,7 @@ VEC potential(CONSTANTS c, VEC* PositionArrayOld, VEC* PotentialArray, int i){
     double sepX, sepY, sepZ, TotalSep, epsilon, sigma, potX, potY, potZ;
     VEC  pot;
 
-    sigma = c.BeadRadi;         /*r where attraction/repulsion changes*/
+    sigma = 2 * c.BeadRadi;         /*r where attraction/repulsion changes*/
     epsilon = 1.0;                  /*Depth of the weakly attractive well for atom*/
     double epsilon_sigma_5 = 12.0*pow(sigma,12.0)*epsilon/AvogadroNum;
 
@@ -378,7 +378,7 @@ int writeVTF(CONSTANTS c, VEC* frames){
     }
 
     int j;				//j represents number of one bead
-    for(j = 0; j < c.N*c.maxIters/500; j++)
+    for(j = 0; j < c.N*c.maxIters/100; j++)
     {
         if (j%c.N == 0)
             fprintf(File_BeadPos, "\ntimestep\n");
@@ -402,7 +402,7 @@ int writeKnotAnalysis(CONSTANTS c, VEC* frames){
 
     double* chain = (double*) malloc( sizeof(double) * 3 * c.N );
 
-    for(int j = 0; j<c.N*c.maxIters/500; j += c.N){ // taking every 100th frame
+    for(int j = 0; j<c.N*c.maxIters/100; j += c.N){ // taking every 100th frame
       for(int i = 0; i < c.N; i++ ) { // taking each bead for that frame
         VEC p = frames[ j + i ];
         chain[3*i] = p.xcoord;
