@@ -132,7 +132,7 @@ int initialise(CONSTANTS* c, VEC** PositionArrayOld, VEC** PositionArrayNew, VEC
     c->m = 0.104 / AvogadroNum;                                          //Bead mass for styrene
     c->Q_0 = c->N_ks * c->b_k;
 
-    c->MaxExtension = c->L_s;
+    c->MaxExtension = 1.6 * c->BeadRadi;
     c->PipeRad = 2.0;
 
     /*Memory allocated*/
