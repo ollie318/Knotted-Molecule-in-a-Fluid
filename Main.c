@@ -368,7 +368,12 @@ VEC potential(CONSTANTS c, VEC* PositionArrayOld, VEC* PotentialArray, int i){
 int writeVTF(CONSTANTS c, VEC* frames){
     /*VTF file for use with VMD*/
     FILE* File_BeadPos;
-    File_BeadPos = fopen("File_BeadPos.vtf", "w");
+    time_t timer;
+    char buffer [255];
+    time (&timer);
+    sprintf(buffer,"BeadPos%s.vtf",ctime(&timer) );
+    File_BeadPos = fopen(buffer, "w");
+
     if(File_BeadPos == NULL) die("Bead coordinate file could not be opened", __LINE__, __FILE__);
     fprintf(File_BeadPos, "atom 0:%d\tradius 1.0\tname S\n" , c.N);
 
@@ -394,7 +399,11 @@ int writeVTF(CONSTANTS c, VEC* frames){
 
 int writeKnotAnalysis(CONSTANTS c, VEC* frames){
     FILE* KnotAnalysis;
-    KnotAnalysis = fopen("KnotAnalysis.txt", "w");
+    time_t timer;
+    char buffer [255];
+    time (&timer);
+    sprintf(buffer,"KnotAnalysis_%s.txt",ctime(&timer) );
+    KnotAnalysis = fopen(buffer, "w");
 
     if(KnotAnalysis == NULL) die("Knot Analysis file could not be opened", __LINE__, __FILE__);
 
