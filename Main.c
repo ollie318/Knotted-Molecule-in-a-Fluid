@@ -126,7 +126,7 @@ int initialise(CONSTANTS* c, VEC** PositionArrayOld, VEC** PositionArrayNew, VEC
 
     c->N_ks = c->N_k / (c->N-1);
     c->L_s = c->N_ks * c->b_k;
-    c->H = (3*Boltzmann*c->T) / (c->L_s * c->b_k);                             //Taken from Simons paper, values for polystyrene not DNA
+    c->H = (30 * Boltzmann *c->T)/(c->BeadRadi * c->BeadRadi);                     //Taken from Simons paper, values for polystyrene not DNA
 
     //c.m = 1.9927E-26;
     c->m = 0.104 / AvogadroNum;                                          //Bead mass for styrene
