@@ -1,8 +1,9 @@
 main:
-	gcc Main.c -O2
-
+	gcc -fopenmp -I/usr/local/include -L/usr/local/lib -lgsl -lgslcblas Main.c -O2 -std=c99
 clean:
 	rm a.out
+	rm Knot.e*
+	rm Knot.o*
 
 run:
 	./a.out 8_19Params.txt
