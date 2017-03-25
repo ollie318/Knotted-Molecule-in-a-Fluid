@@ -372,6 +372,12 @@ int writeVTF(CONSTANTS c, VEC* frames){
     char buffer [255];
     time (&timer);
     sprintf(buffer,"BeadPos%s.vtf",ctime(&timer) );
+    char *p = buffer;
+    for (; *p; ++p)
+    {
+        if (*p == ' ')
+              *p = '_';
+    }
     File_BeadPos = fopen(buffer, "w");
 
     if(File_BeadPos == NULL) die("Bead coordinate file could not be opened", __LINE__, __FILE__);
@@ -403,6 +409,12 @@ int writeKnotAnalysis(CONSTANTS c, VEC* frames){
     char buffer [255];
     time (&timer);
     sprintf(buffer,"KnotAnalysis_%s.txt",ctime(&timer) );
+    char *p = buffer;
+    for (; *p; ++p)
+    {
+        if (*p == ' ')
+              *p = '_';
+    }
     KnotAnalysis = fopen(buffer, "w");
 
     if(KnotAnalysis == NULL) die("Knot Analysis file could not be opened", __LINE__, __FILE__);
