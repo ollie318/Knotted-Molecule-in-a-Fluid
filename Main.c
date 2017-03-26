@@ -57,8 +57,8 @@ int main(int argc, char *argv[]){
     int loopcount;
     for(loopcount = 0; loopcount < c.maxIters; loopcount++){
         /*Adds coordinates to frame file*/
-        if(loopcount%500 == 0){
-            updateFrames(c, loopcount/500, frames, PositionArrayOld);
+        if(loopcount%100 == 0){
+            updateFrames(c, loopcount/100, frames, PositionArrayOld);
         }
         /*Applies forces to previous array to calculate new positions*/
         timestep(c, PositionArrayOld, PositionArrayNew, FENEArray, BrownianArray, PotentialArray, R_GEN);
@@ -139,7 +139,7 @@ int initialise(CONSTANTS* c, VEC** PositionArrayOld, VEC** PositionArrayNew, VEC
 
     c->N_ks = c->N_k / (c->N-1);
     c->L_s = c->N_ks * c->b_k;
-    c->H = (30 * Boltzmann *c->T)/(c->BeadRadi * c->BeadRadi);                     //Taken from Simons paper, values for polystyrene not DNA
+    c->H = (30 * Boltzmann *c->T)/(c->BeadRadi * c->BeadRadi);
 
     //c.m = 1.9927E-26;
     c->m = 0.104 / AvogadroNum;                                          //Bead mass for styrene
@@ -212,17 +212,17 @@ int CalcKnotPos(CONSTANTS c, VEC* PositionArrayOld){
             PositionArrayOld[i].zcoord = 0.0;
           }
           else{
-            PositionArrayOld[i].xcoord = (i - 30) * (c.MaxExtension * 0.5);
-            PositionArrayOld[i].ycoord = Testycoord - 1.0689103E-07;
-            PositionArrayOld[i].zcoord = Testzcoord;
+            PositionArrayOld[i].xcoord = (i - 29) * (c.MaxExtension * 0.5);
+            PositionArrayOld[i].ycoord = Testycoord/20 - 5.3445515E-9;
+            PositionArrayOld[i].zcoord = Testzcoord/20;
           }
         }
         /*Uses knot coordinates, x position is multiplied by number of beads in previous straight chain so they are in the centre of the knot*/
         else{
             fscanf(knot, "%d\t%lf\t%lf\t%lf", &beadnumber, &Testxcoord, &Testycoord, &Testzcoord);
-            PositionArrayOld[i].xcoord = 15 * (c.MaxExtension * 0.5) + Testxcoord;
-            PositionArrayOld[i].ycoord = Testycoord - 1.0689103E-07;
-            PositionArrayOld[i].zcoord = Testzcoord;
+            PositionArrayOld[i].xcoord = 15 * (c.MaxExtension * 0.5) + Testxcoord/20;
+            PositionArrayOld[i].ycoord = Testycoord/20 - 5.3445515E-9;
+            PositionArrayOld[i].zcoord = Testzcoord/20;
         }
     }
 
@@ -333,7 +333,7 @@ VEC potential(CONSTANTS c, VEC* PositionArrayOld, VEC* PotentialArray, int i){
     VEC  pot;
 
     sigma = 2 * c.BeadRadi;         /*r where attraction/repulsion changes*/
-    epsilon = 1.0;                  /*Depth of the weakly attractive well for atom*/
+    epsilon = Boltzmann * c.T;                  /*Depth of the weakly attractive well for atom*/
     double epsilon_sigma_5 = 12.0*pow(sigma,12.0)*epsilon/AvogadroNum;
 
     pot.xcoord = 0.0;
@@ -350,12 +350,13 @@ VEC potential(CONSTANTS c, VEC* PositionArrayOld, VEC* PotentialArray, int i){
             sepX = PositionArrayOld[i].xcoord - PositionArrayOld[j].xcoord;
             sepY = PositionArrayOld[i].ycoord - PositionArrayOld[j].ycoord;
             sepZ = PositionArrayOld[i].zcoord - PositionArrayOld[j].zcoord;
-            TotalSep = pow( sepX*sepX + sepY*sepY + sepZ*sepZ, 6.5 );
+            TotalSep = pow( sepX*sepX + sepY*sepY + sepZ*sepZ, 0.5 );
 
             /*Potential is found for each axis*/
-            potX = epsilon_sigma_5 * sepX / TotalSep;
-            potY = epsilon_sigma_5 * sepY / TotalSep;
-            potZ = epsilon_sigma_5 * sepZ / TotalSep;
+
+            potX = ((24*epsilon)/(2*c.BeadRadi))*sepX*(2*pow(sigma/TotalSep, 13) - pow((sigma/TotalSep), 7));
+            potY = ((24*epsilon)/(2*c.BeadRadi))*sepY*(2*pow(sigma/TotalSep, 13) - pow((sigma/TotalSep), 7));
+            potZ = ((24*epsilon)/(2*c.BeadRadi))*sepZ*(2*pow(sigma/TotalSep, 13) - pow((sigma/TotalSep), 7));
 
             /*The potential for i <> j is added to an overall potential force. */
             pot.xcoord += potX;
@@ -395,7 +396,7 @@ int writeVTF(CONSTANTS c, VEC* frames, char* buffer){
     }
 
     int j;				//j represents number of one bead
-    for(j = 0; j < c.N*c.maxIters/500; j++)
+    for(j = 0; j < c.N*c.maxIters/100; j++)
     {
         if (j%c.N == 0)
             fprintf(File_BeadPos, "\ntimestep\n");
@@ -422,7 +423,7 @@ int writeKnotAnalysis(CONSTANTS c, VEC* frames, char* buffer){
 
     double* chain = (double*) malloc( sizeof(double) * 3 * c.N );
 
-    for(int j = 0; j<c.N*c.maxIters/500; j += c.N){ // taking every 100th frame
+    for(int j = 0; j<c.N*c.maxIters/100; j += c.N){ // taking every 100th frame
       for(int i = 0; i < c.N; i++ ) { // taking each bead for that frame
         VEC p = frames[ j + i ];
         chain[3*i] = p.xcoord;
