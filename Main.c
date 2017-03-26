@@ -3,6 +3,7 @@
 #include <math.h>
 #include <time.h>
 #include <gsl/gsl_rng.h>
+#include <sys/stat.h>
 #include <omp.h>
 #include "Main.h"
 #include "random.h"
@@ -67,8 +68,20 @@ int main(int argc, char *argv[]){
         }
     }
     /*Write values to files and free up any memory*/
-    writeVTF(c, frames);
-    writeKnotAnalysis(c, frames);
+    time_t timestamp;
+    char buffer [255];
+    time (&timestamp);
+    sprintf(buffer,"%s",ctime(&timestamp) );
+    char *p = buffer;
+    for (; *p; ++p)
+    {
+        if (*p == ' ')
+              *p = '_';
+    }
+    mkdir(buffer, 0777);
+
+    writeVTF(c, frames, buffer);
+    writeKnotAnalysis(c, frames, buffer);
     finalise(&c, &PositionArrayOld, &PositionArrayNew, &frames, &FENEArray, &BrownianArray, &PotentialArray);
 
     for (int thread=0; thread<THREADS; thread++)
@@ -365,20 +378,13 @@ VEC potential(CONSTANTS c, VEC* PositionArrayOld, VEC* PotentialArray, int i){
 
 /*The array of frames is then printed to file*/
 
-int writeVTF(CONSTANTS c, VEC* frames){
+int writeVTF(CONSTANTS c, VEC* frames, char* buffer){
     /*VTF file for use with VMD*/
     FILE* File_BeadPos;
-    time_t timer;
-    char buffer [255];
-    time (&timer);
-    sprintf(buffer,"BeadPos%s.vtf",ctime(&timer) );
-    char *p = buffer;
-    for (; *p; ++p)
-    {
-        if (*p == ' ')
-              *p = '_';
-    }
-    File_BeadPos = fopen(buffer, "w");
+    char filename[255];
+    sprintf(filename, "./%s/BeadPos.vtf", buffer);
+
+    File_BeadPos = fopen(filename, "w");
 
     if(File_BeadPos == NULL) die("Bead coordinate file could not be opened", __LINE__, __FILE__);
     fprintf(File_BeadPos, "atom 0:%d\tradius 1.0\tname S\n" , c.N);
@@ -403,19 +409,12 @@ int writeVTF(CONSTANTS c, VEC* frames){
 
 /*Using a Knot analysis program provided by Simon Hanna, the knots properties such as position, length and size are printed. Note this is done for every 100th frame*/
 
-int writeKnotAnalysis(CONSTANTS c, VEC* frames){
+int writeKnotAnalysis(CONSTANTS c, VEC* frames, char* buffer){
     FILE* KnotAnalysis;
-    time_t timer;
-    char buffer [255];
-    time (&timer);
-    sprintf(buffer,"KnotAnalysis_%s.txt",ctime(&timer) );
-    char *p = buffer;
-    for (; *p; ++p)
-    {
-        if (*p == ' ')
-              *p = '_';
-    }
-    KnotAnalysis = fopen(buffer, "w");
+    char filename[255];
+    sprintf(filename, "./%s/KnotAnalysis.txt", buffer);
+
+    KnotAnalysis = fopen(filename, "w");
 
     if(KnotAnalysis == NULL) die("Knot Analysis file could not be opened", __LINE__, __FILE__);
 
