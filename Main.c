@@ -279,11 +279,11 @@ int timestep(CONSTANTS c, VEC* PositionArrayOld, VEC* PositionArrayNew, VEC* FEN
     /*All of the forces calculated are then summed and applied using Euler's method*/
     #pragma omp parallel for
     for(int m = 1; m < c.N; m ++) {
-        PositionArrayNew[m].xcoord = PositionArrayOld[m].xcoord + c.h*((FENEArray[m].xcoord - FENEArray[m-1].xcoord + BrownianArray[m].xcoord + PotentialArray[m].xcoord)/c.eta);
+        PositionArrayNew[m].xcoord = PositionArrayOld[m].xcoord + c.h*((FENEArray[m].xcoord - FENEArray[m-1].xcoord + PotentialArray[m].xcoord)/c.eta);
 
-        PositionArrayNew[m].ycoord = PositionArrayOld[m].ycoord + c.h*((FENEArray[m].ycoord - FENEArray[m-1].ycoord + BrownianArray[m].ycoord + PotentialArray[m].ycoord)/c.eta);
+        PositionArrayNew[m].ycoord = PositionArrayOld[m].ycoord + c.h*((FENEArray[m].ycoord - FENEArray[m-1].ycoord + PotentialArray[m].ycoord)/c.eta);
 
-        PositionArrayNew[m].zcoord = PositionArrayOld[m].zcoord + c.h*((FENEArray[m].zcoord - FENEArray[m-1].zcoord + BrownianArray[m].zcoord + PotentialArray[m].zcoord)/c.eta + StokesFlow(c, PositionArrayOld[m]));
+        PositionArrayNew[m].zcoord = PositionArrayOld[m].zcoord + c.h*((FENEArray[m].zcoord - FENEArray[m-1].zcoord + PotentialArray[m].zcoord)/c.eta + StokesFlow(c, PositionArrayOld[m]));
     }
 
     return EXIT_SUCCESS;
