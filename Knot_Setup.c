@@ -37,6 +37,7 @@ int main()
         fprintf(Params, "1E-2\n");
         fprintf(Params, "%d\n", v);
         fprintf(Params, "0.0000001\n");
+        fprintf(Params, "298\n");
         fprintf(Params, "2626\n");
         fprintf(Params, "1.8E-9\n");
 
@@ -66,6 +67,7 @@ int main()
         fprintf(Params, "%lf\n", eta);
         fprintf(Params, "200\n");
         fprintf(Params, "0.0000001\n");
+        fprintf(Params, "298\n");
         fprintf(Params, "2626\n");
         fprintf(Params, "1.8E-9\n");
 
@@ -96,6 +98,7 @@ int main()
         fprintf(Params, "%lf\n", eta);
         fprintf(Params, "100\n");
         fprintf(Params, "0.0000001\n");
+        fprintf(Params, "298\n");
         fprintf(Params, "2626\n");
         fprintf(Params, "1.8E-9\n");
 
@@ -129,6 +132,7 @@ int main()
         fprintf(Params, "1E-3\n");
         fprintf(Params, "100\n");
         fprintf(Params, "0.0000001\n");
+        fprintf(Params, "298\n");
         fprintf(Params, "%d\n", k);
         fprintf(Params, "1.8E-9\n");
 
