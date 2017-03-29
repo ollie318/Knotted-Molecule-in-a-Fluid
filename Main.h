@@ -23,7 +23,7 @@ int updateFrames(CONSTANTS c, int CurrentFrame, VEC* frames, VEC* positions);			
 
 int timestep(CONSTANTS c, VEC* PositionArrayOld, VEC* PositionArrayNew, VEC* VECArray, VEC* BrownianArray, VEC* PotentialArray, gsl_rng** seed);						//Loop that calls Forces for each bead, will inc potential
 
-VEC FENEForce(VEC nPos, VEC nPosPlusOne, CONSTANTS c);
+VEC FENEForce(VEC nPos, VEC nPosPlusOne, CONSTANTS c, int i);
 
 VEC Brownian(CONSTANTS c, gsl_rng* seednum);
 
@@ -31,9 +31,9 @@ double StokesFlow(CONSTANTS c, VEC OldPos);
 
 VEC  potential(CONSTANTS c, VEC* PositionArrayOld, VEC* PotentialArray, int i);																//Lennard-Jones Potential
 
-int writeVTF(CONSTANTS c, VEC* frames, char* buffer);																		//Writes all bead positions to file after arrays finished
+int writeVTF(CONSTANTS c, VEC* frames);																		//Writes all bead positions to file after arrays finished
 
-int writeKnotAnalysis(CONSTANTS c, VEC* frames, char* buffer);
+int writeKnotAnalysis(CONSTANTS c, VEC* frames);
 
 int finalise(CONSTANTS* c, VEC** PositionArrayOld, VEC** PositionArrayNew, VEC** frames, VEC** VECArray, VEC** BrownianArray, VEC** PotentialArray);			//frees memory
 
