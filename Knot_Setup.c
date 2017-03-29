@@ -32,7 +32,7 @@ int main()
         Params = fopen(params, "w");
 
         fprintf(Params, "60\n");
-        fprintf(Params, "1000000\n");
+        fprintf(Params, "10000000\n");
         fprintf(Params, "24E-9\n");
         fprintf(Params, "1E-2\n");
         fprintf(Params, "%d\n", v);
@@ -62,7 +62,7 @@ int main()
         Params = fopen(params, "w");
 
         fprintf(Params, "60\n");
-        fprintf(Params, "1000000\n");
+        fprintf(Params, "10000000\n");
         fprintf(Params, "24E-9\n");
         fprintf(Params, "%lf\n", eta);
         fprintf(Params, "200\n");
@@ -93,7 +93,7 @@ int main()
         Params = fopen(params, "w");
 
         fprintf(Params, "60\n");
-        fprintf(Params, "1000000\n");
+        fprintf(Params, "10000000\n");
         fprintf(Params, "24E-9\n");
         fprintf(Params, "%lf\n", eta);
         fprintf(Params, "100\n");
@@ -127,7 +127,7 @@ int main()
         k = (j+0.5);
 
         fprintf(Params, "%d\n", i);
-        fprintf(Params, "1000000\n");
+        fprintf(Params, "10000000\n");
         fprintf(Params, "24E-9\n");
         fprintf(Params, "1E-3\n");
         fprintf(Params, "100\n");

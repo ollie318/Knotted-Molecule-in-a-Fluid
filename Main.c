@@ -56,8 +56,8 @@ int main(int argc, char *argv[]){
     int loopcount;
     for(loopcount = 0; loopcount < c.maxIters; loopcount++){
         /*Adds coordinates to frame file*/
-        if(loopcount%50 == 0){
-            updateFrames(c, loopcount/50, frames, PositionArrayOld);
+        if(loopcount%500 == 0){
+            updateFrames(c, loopcount/500, frames, PositionArrayOld);
         }
         /*Applies forces to previous array to calculate new positions*/
         timestep(c, PositionArrayOld, PositionArrayNew, FENEArray, BrownianArray, PotentialArray, R_GEN);
@@ -144,7 +144,7 @@ int initialise(CONSTANTS* c, VEC** PositionArrayOld, VEC** PositionArrayNew, VEC
     (*PositionArrayNew) = (VEC*) malloc(sizeof(VEC) * c->N);
     if(PositionArrayNew == NULL) die("cannot allocate memory for PositionArrayNew", __LINE__, __FILE__);
 
-    (*frames) = (VEC*) malloc(sizeof(VEC) * c->N * c->maxIters/50);
+    (*frames) = (VEC*) malloc(sizeof(VEC) * c->N * c->maxIters/500);
     if(frames == NULL) die("cannot allocate memory for frames", __LINE__, __FILE__);
 
     (*FENEArray) = (VEC*) malloc(sizeof(VEC) * c->N);
@@ -395,6 +395,12 @@ int writeVTF(CONSTANTS c, VEC* frames){
     char buffer [255];
     time (&timer);
     sprintf(buffer,"BeadPos_%s.vtf",ctime(&timer) );
+    char *p = buffer;
+    for (; *p; ++p)
+    {
+        if (*p == ' ')
+        *p = '_';
+    }
     File_BeadPos = fopen(buffer, "w");
 
     if(File_BeadPos == NULL) die("Bead coordinate file could not be opened", __LINE__, __FILE__);
@@ -406,7 +412,7 @@ int writeVTF(CONSTANTS c, VEC* frames){
     }
 
     int j;				//j represents number of one bead
-    for(j = 0; j < c.N*c.maxIters/50; j++)
+    for(j = 0; j < c.N*c.maxIters/500; j++)
     {
         if (j%c.N == 0)
             fprintf(File_BeadPos, "\ntimestep\n");
@@ -426,6 +432,12 @@ int writeKnotAnalysis(CONSTANTS c, VEC* frames){
     char buffer [255];
     time (&timer);
     sprintf(buffer,"KnotAnalysis_%s.txt",ctime(&timer) );
+    char *p = buffer;
+     for (; *p; ++p)
+     {
+         if (*p == ' ')
+               *p = '_';
+     }
     KnotAnalysis = fopen(buffer, "w");
 
     if(KnotAnalysis == NULL) die("Knot Analysis file could not be opened", __LINE__, __FILE__);
@@ -434,7 +446,7 @@ int writeKnotAnalysis(CONSTANTS c, VEC* frames){
 
     double* chain = (double*) malloc( sizeof(double) * 3 * c.N );
 
-    for(int j = 0; j<c.N*c.maxIters/50; j += c.N){ // taking every 100th frame
+    for(int j = 0; j<c.N*c.maxIters/500; j += c.N){ // taking every 100th frame
       for(int i = 0; i < c.N; i++ ) { // taking each bead for that frame
         VEC p = frames[ j + i ];
         chain[3*i] = p.xcoord;
