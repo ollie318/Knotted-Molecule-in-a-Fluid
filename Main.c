@@ -3,7 +3,6 @@
 #include <math.h>
 #include <time.h>
 #include <gsl/gsl_rng.h>
-#include <sys/stat.h>
 #include <omp.h>
 #include "Main.h"
 #include "random.h"
@@ -57,8 +56,8 @@ int main(int argc, char *argv[]){
     int loopcount;
     for(loopcount = 0; loopcount < c.maxIters; loopcount++){
         /*Adds coordinates to frame file*/
-        if(loopcount%100 == 0){
-            updateFrames(c, loopcount/100, frames, PositionArrayOld);
+        if(loopcount%50 == 0){
+            updateFrames(c, loopcount/50, frames, PositionArrayOld);
         }
         /*Applies forces to previous array to calculate new positions*/
         timestep(c, PositionArrayOld, PositionArrayNew, FENEArray, BrownianArray, PotentialArray, R_GEN);
@@ -68,20 +67,8 @@ int main(int argc, char *argv[]){
         }
     }
     /*Write values to files and free up any memory*/
-    time_t timestamp;
-    char buffer [255];
-    time (&timestamp);
-    sprintf(buffer,"%s",ctime(&timestamp) );
-    char *p = buffer;
-    for (; *p; ++p)
-    {
-        if (*p == ' ')
-              *p = '_';
-    }
-    mkdir(buffer, 0777);
-
-    writeVTF(c, frames, buffer);
-    writeKnotAnalysis(c, frames, buffer);
+    writeVTF(c, frames);
+    writeKnotAnalysis(c, frames);
     finalise(&c, &PositionArrayOld, &PositionArrayNew, &frames, &FENEArray, &BrownianArray, &PotentialArray);
 
     for (int thread=0; thread<THREADS; thread++)
@@ -139,13 +126,14 @@ int initialise(CONSTANTS* c, VEC** PositionArrayOld, VEC** PositionArrayNew, VEC
 
     c->N_ks = c->N_k / (c->N-1);
     c->L_s = c->N_ks * c->b_k;
-    c->H = (3*Boltzmann*c->T) / (c->L_s * c->b_k);
+    c->H = (3*Boltzmann*c->T) / (c->L_s * c->b_k);                             //Taken from Simons paper, values for polystyrene not DNA
 
     //c.m = 1.9927E-26;
     c->m = 0.104 / AvogadroNum;                                          //Bead mass for styrene
     c->Q_0 = c->N_ks * c->b_k;
 
-    c->MaxExtension = c->BeadRadi * 2 * 1.3;
+//    c->MaxExtension = 1.6 * c->BeadRadi;
+    c->MaxExtension = c->L_s;
     c->PipeRad = 2.0;
 
     /*Memory allocated*/
@@ -156,7 +144,7 @@ int initialise(CONSTANTS* c, VEC** PositionArrayOld, VEC** PositionArrayNew, VEC
     (*PositionArrayNew) = (VEC*) malloc(sizeof(VEC) * c->N);
     if(PositionArrayNew == NULL) die("cannot allocate memory for PositionArrayNew", __LINE__, __FILE__);
 
-    (*frames) = (VEC*) malloc(sizeof(VEC) * c->N * c->maxIters/100);
+    (*frames) = (VEC*) malloc(sizeof(VEC) * c->N * c->maxIters/50);
     if(frames == NULL) die("cannot allocate memory for frames", __LINE__, __FILE__);
 
     (*FENEArray) = (VEC*) malloc(sizeof(VEC) * c->N);
@@ -195,7 +183,7 @@ int initialise(CONSTANTS* c, VEC** PositionArrayOld, VEC** PositionArrayNew, VEC
 int CalcKnotPos(CONSTANTS c, VEC* PositionArrayOld){
 
     FILE *knot;
-    knot = fopen("8_19_32beads.txt", "r");
+    knot = fopen("../../../8_19_32beads.txt", "r");
 
     if(knot == NULL) die("cannot find knot coordinate file", __LINE__, __FILE__);
 
@@ -207,12 +195,12 @@ int CalcKnotPos(CONSTANTS c, VEC* PositionArrayOld){
         /*Adds a straight chain of 15 beads to either side of the knot*/
         if((i >= 0 && i < 15) || (i > 45 && i < c.N )){
           if(i >= 0 && i < 15){
-            PositionArrayOld[i].xcoord = i * (c.MaxExtension * 0.8);
+            PositionArrayOld[i].xcoord = i * (c.MaxExtension * 0.5);
             PositionArrayOld[i].ycoord = 0.0;
             PositionArrayOld[i].zcoord = 0.0;
           }
           else{
-            PositionArrayOld[i].xcoord = (i - 30) * (c.MaxExtension * 0.8);
+            PositionArrayOld[i].xcoord = (i - 30) * (c.MaxExtension * 0.5);
             PositionArrayOld[i].ycoord = Testycoord - 1.0689103E-07;
             PositionArrayOld[i].zcoord = Testzcoord;
           }
@@ -220,7 +208,7 @@ int CalcKnotPos(CONSTANTS c, VEC* PositionArrayOld){
         /*Uses knot coordinates, x position is multiplied by number of beads in previous straight chain so they are in the centre of the knot*/
         else{
             fscanf(knot, "%d\t%lf\t%lf\t%lf", &beadnumber, &Testxcoord, &Testycoord, &Testzcoord);
-            PositionArrayOld[i].xcoord = 15 * (c.MaxExtension * 0.8) + Testxcoord;
+            PositionArrayOld[i].xcoord = 15 * (c.MaxExtension * 0.5) + Testxcoord;
             PositionArrayOld[i].ycoord = Testycoord - 1.0689103E-07;
             PositionArrayOld[i].zcoord = Testzcoord;
         }
@@ -252,16 +240,17 @@ int timestep(CONSTANTS c, VEC* PositionArrayOld, VEC* PositionArrayNew, VEC* FEN
     PositionArrayNew[0].zcoord = 0.0;
 
     /*For FENE forces, we calculate the force between bead i and i+1. The force from i to i-1 is the negative of i-1 to i*/
-    FENEArray[0] = FENEForce(PositionArrayOld[0], PositionArrayOld[1], c);
+    FENEArray[0] = FENEForce(PositionArrayOld[0], PositionArrayOld[1], c, 0);
 
     /*Section can be run in parallel as positions are not changed*/
     #pragma omp parallel for
     for(int i = 1; i < c.N-1; i ++) {
-        FENEArray[i] = FENEForce(PositionArrayOld[i], PositionArrayOld[i+1], c);
+        FENEArray[i] = FENEForce(PositionArrayOld[i], PositionArrayOld[i+1], c, i);
+//        if (i==1) printf(" FENE %g %g %g ",FENEArray[i].xcoord,FENEArray[i].ycoord,FENEArray[i].zcoord);
     }
 
     /*Final bead has no bead after it, so same array is passed in twice to make force 0*/
-    FENEArray[c.N-1] = FENEForce(PositionArrayOld[c.N-1], PositionArrayOld[c.N-1], c);
+    FENEArray[c.N-1] = FENEForce(PositionArrayOld[c.N-1], PositionArrayOld[c.N-1], c, c.N-1);
 
     /*Again can be run in parallel, but issues arise when generating random number as all threads need access do different seeds*/
 
@@ -270,10 +259,12 @@ int timestep(CONSTANTS c, VEC* PositionArrayOld, VEC* PositionArrayNew, VEC* FEN
         /*Thread id passed through to random number generator so correct seed is used*/
         int tid = omp_get_thread_num();
         BrownianArray[j] = Brownian(c, seed[tid]);
+//        if (j==1) printf(" Brown %g %g %g ",BrownianArray[j].xcoord,BrownianArray[j].ycoord,BrownianArray[j].zcoord);
     }
     #pragma omp parallel for
     for(int k = 1; k < c.N; k ++) {
         PotentialArray[k] = potential(c, PositionArrayOld, PotentialArray, k);
+//        if (k==1) printf(" Pot %g %g %g ",PotentialArray[k].xcoord,PotentialArray[k].ycoord,PotentialArray[k].zcoord);
     }
 
     /*All of the forces calculated are then summed and applied using Euler's method*/
@@ -284,25 +275,34 @@ int timestep(CONSTANTS c, VEC* PositionArrayOld, VEC* PositionArrayNew, VEC* FEN
         PositionArrayNew[m].ycoord = PositionArrayOld[m].ycoord + c.h*((FENEArray[m].ycoord - FENEArray[m-1].ycoord + BrownianArray[m].ycoord + PotentialArray[m].ycoord)/c.eta);
 
         PositionArrayNew[m].zcoord = PositionArrayOld[m].zcoord + c.h*((FENEArray[m].zcoord - FENEArray[m-1].zcoord + BrownianArray[m].zcoord + PotentialArray[m].zcoord)/c.eta + StokesFlow(c, PositionArrayOld[m]));
+//        if (m==1) printf(" Coords %g %g %g Flow: %g \n",PositionArrayNew[m].xcoord,PositionArrayNew[m].ycoord,PositionArrayNew[m].zcoord, StokesFlow(c, PositionArrayOld[m]));
+
     }
 
     return EXIT_SUCCESS;
 }
 
-VEC FENEForce(VEC nPos, VEC nPosPlusOne, CONSTANTS c){
+VEC FENEForce(VEC nPos, VEC nPosPlusOne, CONSTANTS c, int i){
     VEC FENEForces;
 
     /*Finds the total seperation between the beads. The seperation in each coordinate is also found and FENE calculated and assigned to the FENE array*/
     double TotalSep = sqrt(pow(nPosPlusOne.xcoord - nPos.xcoord, 2) + pow(nPosPlusOne.ycoord - nPos.ycoord, 2) + pow(nPosPlusOne.zcoord - nPos.zcoord, 2));
+    double ratio = (TotalSep*TotalSep)/ (c.MaxExtension * c.MaxExtension);
+
+    if (ratio > 0.81) {  // Arbitrarily set at 0.9*0.9
+        ratio = 0.81;
+    }
+
+    double denom = (1 - ratio);
 
     double Q_x = nPosPlusOne.xcoord - nPos.xcoord;
-    double x = (c.H * Q_x) / (1 - ((TotalSep*TotalSep)/ (c.MaxExtension * c.MaxExtension)));
+    double x = (c.H * Q_x) / denom;
 
     double Q_y = nPosPlusOne.ycoord - nPos.ycoord;
-    double y = (c.H * Q_y) / (1 - ((TotalSep*TotalSep)/ (c.MaxExtension * c.MaxExtension)));
+    double y = (c.H * Q_y) / denom;
 
     double Q_z = nPosPlusOne.zcoord - nPos.zcoord;
-    double z = (c.H * Q_z) / (1 - ((TotalSep*TotalSep)/ (c.MaxExtension * c.MaxExtension)));
+    double z = (c.H * Q_z) / denom;
 
     FENEForces.xcoord = x;
     FENEForces.ycoord = y;
@@ -333,8 +333,10 @@ VEC potential(CONSTANTS c, VEC* PositionArrayOld, VEC* PotentialArray, int i){
     VEC  pot;
 
     sigma = 2 * c.BeadRadi;         /*r where attraction/repulsion changes*/
-    epsilon = 6.5E-20;                  /*Depth of the weakly attractive well for atom*/
-    double epsilon_sigma_5 = 4.8*pow(sigma,4.8)*epsilon;
+    epsilon = 1.0e-19;                  /*Depth of the weakly attractive well for atom*/
+//    epsilon = 0.0;                  /*Depth of the weakly attractive well for atom*/
+//    double epsilon_sigma_5 = 12.0*pow(sigma,12.0)*epsilon/AvogadroNum;
+    double epsilon_sigma_5 = 5*pow(sigma,5)*epsilon;
 
     pot.xcoord = 0.0;
     pot.ycoord = 0.0;
@@ -345,15 +347,15 @@ VEC potential(CONSTANTS c, VEC* PositionArrayOld, VEC* PotentialArray, int i){
 //    for(int j = (i+1); j < c.N; j++)
     for(int j = 0; j < c.N; j++)
     {
-        if (i!=j && (i+1)!=j && (i-1)!=j) {
+        if (j!=i && j!=(i+1) && j!=(i-1)) {
+//            if (i!=j) {
 
             sepX = PositionArrayOld[i].xcoord - PositionArrayOld[j].xcoord;
             sepY = PositionArrayOld[i].ycoord - PositionArrayOld[j].ycoord;
             sepZ = PositionArrayOld[i].zcoord - PositionArrayOld[j].zcoord;
-            TotalSep = pow( sepX*sepX + sepY*sepY + sepZ*sepZ, 3.4);
+            TotalSep = pow( sepX*sepX + sepY*sepY + sepZ*sepZ, 3.5 );
 
             /*Potential is found for each axis*/
-
             potX = epsilon_sigma_5 * sepX / TotalSep;
             potY = epsilon_sigma_5 * sepY / TotalSep;
             potZ = epsilon_sigma_5 * sepZ / TotalSep;
@@ -367,28 +369,36 @@ VEC potential(CONSTANTS c, VEC* PositionArrayOld, VEC* PotentialArray, int i){
     }
 
     /*Wall potential, eq from Simon's paper*/
-    double avbond =  0.5 * c.b_k * sqrt(c.N_ks);
+/*    double avbond =  0.5 * c.b_k * sqrt(c.N_ks);
     if(PositionArrayOld[i].xcoord > 0.25*avbond){
         pot.xcoord += Boltzmann * c.T * 5 * pow(avbond, 5) / pow(PositionArrayOld[i].xcoord , 6);           //MaxExtension should be equilibrium length
     }
     else{
+        printf("Oook %d ",i);
         pot.xcoord += Boltzmann * c.T * 5 * pow(avbond, 5) / pow(0.25*avbond , 6);           //MaxExtension should be equilibrium length
+    }*/
+    if(PositionArrayOld[i].xcoord > 0.5*sigma){
+        pot.xcoord += epsilon_sigma_5 / pow(PositionArrayOld[i].xcoord , 6);
+    }
+    else{
+        pot.xcoord += epsilon_sigma_5 / pow(0.5*sigma , 6);
     }
     return pot;
 }
 
 /*The array of frames is then printed to file*/
 
-int writeVTF(CONSTANTS c, VEC* frames, char* buffer){
+int writeVTF(CONSTANTS c, VEC* frames){
     /*VTF file for use with VMD*/
     FILE* File_BeadPos;
-    char filename[255];
-    sprintf(filename, "./%s/BeadPos.vtf", buffer);
-
-    File_BeadPos = fopen(filename, "w");
+    time_t timer;
+    char buffer [255];
+    time (&timer);
+    sprintf(buffer,"BeadPos_%s.vtf",ctime(&timer) );
+    File_BeadPos = fopen(buffer, "w");
 
     if(File_BeadPos == NULL) die("Bead coordinate file could not be opened", __LINE__, __FILE__);
-    fprintf(File_BeadPos, "atom 0:%d\tradius 1.0\tname S\n" , c.N);
+    fprintf(File_BeadPos, "atom 0:%d\tradius 1.0\tname S\n" , c.N-1);
 
     int k;
     for(k = 0; k < c.N-1; k++){
@@ -396,7 +406,7 @@ int writeVTF(CONSTANTS c, VEC* frames, char* buffer){
     }
 
     int j;				//j represents number of one bead
-    for(j = 0; j < c.N*c.maxIters/100; j++)
+    for(j = 0; j < c.N*c.maxIters/50; j++)
     {
         if (j%c.N == 0)
             fprintf(File_BeadPos, "\ntimestep\n");
@@ -410,12 +420,13 @@ int writeVTF(CONSTANTS c, VEC* frames, char* buffer){
 
 /*Using a Knot analysis program provided by Simon Hanna, the knots properties such as position, length and size are printed. Note this is done for every 100th frame*/
 
-int writeKnotAnalysis(CONSTANTS c, VEC* frames, char* buffer){
+int writeKnotAnalysis(CONSTANTS c, VEC* frames){
     FILE* KnotAnalysis;
-    char filename[255];
-    sprintf(filename, "./%s/KnotAnalysis.txt", buffer);
-
-    KnotAnalysis = fopen(filename, "w");
+    time_t timer;
+    char buffer [255];
+    time (&timer);
+    sprintf(buffer,"KnotAnalysis_%s.txt",ctime(&timer) );
+    KnotAnalysis = fopen(buffer, "w");
 
     if(KnotAnalysis == NULL) die("Knot Analysis file could not be opened", __LINE__, __FILE__);
 
@@ -423,7 +434,7 @@ int writeKnotAnalysis(CONSTANTS c, VEC* frames, char* buffer){
 
     double* chain = (double*) malloc( sizeof(double) * 3 * c.N );
 
-    for(int j = 0; j<c.N*c.maxIters/100; j += c.N){ // taking every 100th frame
+    for(int j = 0; j<c.N*c.maxIters/50; j += c.N){ // taking every 100th frame
       for(int i = 0; i < c.N; i++ ) { // taking each bead for that frame
         VEC p = frames[ j + i ];
         chain[3*i] = p.xcoord;
