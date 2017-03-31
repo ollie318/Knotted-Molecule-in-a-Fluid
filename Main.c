@@ -442,7 +442,7 @@ int writeKnotAnalysis(CONSTANTS c, VEC* frames){
 
     if(KnotAnalysis == NULL) die("Knot Analysis file could not be opened", __LINE__, __FILE__);
 
-    fprintf(KnotAnalysis, "Start\t\tEnd\t\t\tPosition\n" );
+    fprintf(KnotAnalysis, "Start\t\tEnd\t\tPosition\t\tSize\n" );
 
     double* chain = (double*) malloc( sizeof(double) * 3 * c.N );
 
@@ -458,11 +458,12 @@ int writeKnotAnalysis(CONSTANTS c, VEC* frames){
        PolymerKnot = jKN_alloc(chain, c.N);
        KnotScan(PolymerKnot);
        if (PolymerKnot->state>0){
-           double kstart, kend, kpos;
+           double kstart, kend, kpos, ksize;
    				kstart = floor(0.5+PolymerKnot->start)+1;
    				kend = floor(0.5+PolymerKnot->end)+1;
    				kpos = floor(0.5+PolymerKnot->position)+1;
-           fprintf(KnotAnalysis, "%lf\t%lf\t%lf\n", kstart, kend, kpos);
+                ksize = floor(0.5+PolymerKnot->size)+1;
+           fprintf(KnotAnalysis, "%lf\t%lf\t%lf\t%lf\n", kstart, kend, kpos, ksize);
        }
        else fprintf(KnotAnalysis, "state = 0");
     }
