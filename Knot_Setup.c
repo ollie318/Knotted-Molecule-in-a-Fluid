@@ -33,7 +33,7 @@ int main()
         fprintf(Params, "10000000\n");
         fprintf(Params, "24E-9\n");
         fprintf(Params, "%lf\n", eta);
-        fprintf(Params, "100\n");
+        fprintf(Params, "20\n");
         fprintf(Params, "0.0000001\n");
         fprintf(Params, "298\n");
         fprintf(Params, "2626\n");
