@@ -5,15 +5,15 @@
 
 int main()
 {
-    const int const_chain_length = 60; //+2 intermediate lines
-    const int const_line_repeat = 62;
+    const int const_chain_length = 105; //+2 intermediate lines
+    const int const_line_repeat = const_chain_length + 2;
     long file_size;
 
     FILE* Coord_File;
-    Coord_File = fopen("BeadPos_Sat_Apr__1_21_59_13_2017_.vtf","r");
+    Coord_File = fopen("Length105_Sat_Apr__1_22_53_13_2017_.vtf","r");
 
     FILE* Results_File;
-    Results_File = fopen("Lengths_Apr_1_21_59.txt", "w");
+    Results_File = fopen("Lengths_Length105_Apr_1_22_53_13.txt", "w");
 
     fseek(Coord_File, 0, SEEK_END);
     file_size = ftell(Coord_File);
@@ -40,10 +40,11 @@ int main()
     int line_num = 0;       //Num of lines passed, e.g. to get to line 5 set while(line_num != 4) then lines passed is 4, line is 5
     long loopcount = 0;      //Num of character
 
-    int chain_start = 62;
+    int chain_start = const_line_repeat;
     int chain_end = chain_start + const_chain_length - 1;     //last bead in chain
 
-    for(loopcount = 0; loopcount < (file_size-50);)
+    //long file_sizeMINUS_50 = file_size - 50;
+    for(loopcount = 0; loopcount < file_size;)
     {
         while(line_num != chain_end)
         {
@@ -56,13 +57,19 @@ int main()
 
         dbl_x = strtod(&myArray[loopcount], &ptrChar);
         dbl_y = strtod(ptrChar+1, &ptrChar);            //ptrChar points to first char not in dbl_x
-        dbl_z = strtod(ptrChar+1, NULL);
+        dbl_z = strtod(ptrChar+1, &ptrChar);
         end_to_end_length = sqrt(dbl_x*dbl_x + dbl_y*dbl_y + dbl_z*dbl_z);
 
         fprintf(Results_File, "%.13f", end_to_end_length);
         fprintf(Results_File, "\n");
 
+        if(*(ptrChar+2) == 't'){
         chain_end += const_line_repeat;
+        }
+
+        else{
+        loopcount = file_size;
+        }
     }
 
     fclose(Results_File);
